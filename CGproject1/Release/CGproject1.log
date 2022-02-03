@@ -1,0 +1,20 @@
+﻿  main.cpp
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(6,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(7,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(8,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(9,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(65,13): warning C4305: '+=': truncation from 'double' to 'float'
+main.obj : error LNK2001: unresolved external symbol __imp____glewEnableVertexAttribArray
+main.obj : error LNK2001: unresolved external symbol __imp____glewBindVertexArray
+main.obj : error LNK2001: unresolved external symbol __imp____glewUseProgram
+main.obj : error LNK2001: unresolved external symbol __imp____glewVertexAttribPointer
+main.obj : error LNK2001: unresolved external symbol __imp____glewGetAttribLocation
+main.obj : error LNK2001: unresolved external symbol __imp____glewBindBuffer
+main.obj : error LNK2001: unresolved external symbol __imp____glewCreateProgram
+main.obj : error LNK2001: unresolved external symbol __imp__glewGetErrorString@4
+main.obj : error LNK2001: unresolved external symbol __imp____glewBufferData
+main.obj : error LNK2001: unresolved external symbol __imp____glewGenVertexArrays
+main.obj : error LNK2001: unresolved external symbol __imp____glewDisableVertexAttribArray
+main.obj : error LNK2001: unresolved external symbol __imp____glewGenBuffers
+main.obj : error LNK2001: unresolved external symbol __imp__glewInit@0
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\Release\CGproject1.exe : fatal error LNK1120: 13 unresolved externals

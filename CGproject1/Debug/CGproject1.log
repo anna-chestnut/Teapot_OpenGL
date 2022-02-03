@@ -1,0 +1,16 @@
+﻿  main.cpp
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(12,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(13,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(14,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(15,10): warning C4067: unexpected tokens following preprocessor directive - expected a newline
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(57,17): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(58,17): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(59,18): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(60,18): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(203,29): warning C4018: '<': signed/unsigned mismatch
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(266,13): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(267,13): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(320,13): warning C4305: '+=': truncation from 'double' to 'float'
+C:\Users\u1377592\source\repos\OpenGL\CGproject1\CGproject1\main.cpp(402,20): warning C4018: '<': signed/unsigned mismatch
+  CGproject1.vcxproj -> C:\Users\u1377592\source\repos\OpenGL\CGproject1\Debug\CGproject1.exe
+          1 file(s) copied.
