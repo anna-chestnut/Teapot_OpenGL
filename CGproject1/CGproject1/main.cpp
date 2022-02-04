@@ -305,7 +305,8 @@ void myDisplay() {
 	ASSERT(location != -1);
 	GLCall(glUniform4f(location, 0.8f, 0.3f, 0.8f, 1.0f));
 	
-	GLCall(glDrawArrays(GL_POINTS, 0, tm.NV()));
+	//GLCall(glDrawArrays(GL_POINTS, 0, tm.NV()));
+	GLCall(glDrawElements(GL_TRIANGLES, tm.NV(), GL_UNSIGNED_INT, nullptr));
 
 	glDisableVertexAttribArray(0);//from tutorial "pos"
 
