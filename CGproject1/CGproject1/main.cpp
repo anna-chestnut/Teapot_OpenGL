@@ -63,6 +63,7 @@ float zoom = 0.0f;
 //float yoffset = 0.0f;
 
 unsigned int shader;
+unsigned int numberOfV = 0;
 
 static void GLClearError() {
 
@@ -305,8 +306,9 @@ void myDisplay() {
 	ASSERT(location != -1);
 	GLCall(glUniform4f(location, 0.8f, 0.3f, 0.8f, 1.0f));
 	
+	GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
 	//GLCall(glDrawArrays(GL_POINTS, 0, tm.NV()));
-	GLCall(glDrawElements(GL_TRIANGLES, tm.NV(), GL_UNSIGNED_INT, nullptr));
+	//GLCall(glDrawElements(GL_TRIANGLES, tm.NV(), GL_UNSIGNED_INT, nullptr));
 
 	glDisableVertexAttribArray(0);//from tutorial "pos"
 
@@ -368,21 +370,47 @@ void myMouse(int button, int state, int x, int y) {
 
 }
 
+unsigned int elemPos[] = {
+	0, 1, 2,
+	0, 2, 3
+};
+
+unsigned int elemColor[] = {
+	2, 7, 8,
+	1, 2, 5
+};
+
 static void CreateVertexBuffer() {
 
 	/*vertex buffer object*/
 	std::ostream* outString = nullptr;
-	bool readSuccess = tm.LoadFromFileObj("C:\\Users\\u1377592\\Downloads\\teapot.obj", false, outString);
+	//bool readSuccess = tm.LoadFromFileObj("C:\\Users\\123\\Downloads\\teapot.obj", false, outString);
+	bool readSuccess = tm.LoadFromFileObj("teapot.obj", false, outString);
 	assert(readSuccess);
 
+	std::vector<glm::vec3> vertices;
+
+	for (unsigned int i = 0; i < tm.NF(); i++) {
+
+		unsigned int tmp = i;
+		cy::TriMesh::TriFace face = tm.F(i);
+		
+		vertices.push_back(glm::vec3(tm.V(face.v[0]).x, tm.V(face.v[0]).y, tm.V(face.v[0]).z));
+		vertices.push_back(glm::vec3(tm.V(face.v[1]).x, tm.V(face.v[1]).y, tm.V(face.v[1]).z));
+		vertices.push_back(glm::vec3(tm.V(face.v[2]).x, tm.V(face.v[2]).y, tm.V(face.v[2]).z));
+
+	}
+
+	numberOfV = vertices.size();
 	/*bind buffer*/
 	GLCall(glGenBuffers(1, &vbo));//in this case only create 1 buffer
 	GLCall(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-	GLCall(glBufferData(GL_ARRAY_BUFFER, tm.NV() * sizeof(cy::Vec3f), &tm.V(0), GL_STATIC_DRAW));
+	//GLCall(glBufferData(GL_ARRAY_BUFFER, tm.NV() * sizeof(cy::Vec3f), &tm.V(0), GL_STATIC_DRAW));
+	GLCall(glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW));
 
 	/*calculate bounding box*/
 	// Cube 1x1x1, centered on origin
-	GLfloat vertices[] = {
+	/*GLfloat vertices[] = {
 	  -0.5, -0.5, -0.5, 1.0,
 	   0.5, -0.5, -0.5, 1.0,
 	   0.5,  0.5, -0.5, 1.0,
@@ -410,7 +438,7 @@ static void CreateVertexBuffer() {
 	}
 	glm::vec3 size = glm::vec3(max_x - min_x, max_y - min_y, max_z - min_z);
 	glm::vec3 center = glm::vec3((min_x + max_x) / 2, (min_y + max_y) / 2, (min_z + max_z) / 2);
-	transformOrigin = glm::translate(glm::mat4(1), center) * glm::scale(glm::mat4(1), size);
+	transformOrigin = glm::translate(glm::mat4(1), center) * glm::scale(glm::mat4(1), size);*/
 }
 
 static void CreateVertexArrayObject() {
