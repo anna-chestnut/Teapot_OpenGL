@@ -29,7 +29,8 @@ using namespace cy;
 
 
 TriMesh tm;
-GLuint vbo;
+GLuint vertexbuffer;
+GLuint normalbuffer;
 GLuint vao;
 int width = 1920, height = 1080;
 
@@ -64,6 +65,10 @@ float zoom = 0.0f;
 
 unsigned int shader;
 unsigned int numberOfV = 0;
+unsigned int numberOfVN = 0;
+
+GLuint pos;
+GLuint aNormal;
 
 static void GLClearError() {
 
@@ -254,22 +259,28 @@ void myDisplay() {
 	/*tell OpenGL how to interpret data from vertex buffer object*/
 	//GLCall(GLuint pos = glGetAttribLocation(shader, "pos"));
 	//GLCall(glUseProgram(shader));
-	GLCall(glEnableVertexAttribArray(0));
-	GLCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0));
+
+	/* shader (location = 0) pos */
+	GLCall(glEnableVertexAttribArray(pos));
+	GLCall(GL_ARRAY_BUFFER, vertexbuffer);
+	GLCall(glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0));
+
+	/* shader (location = 1) aNoraml */
+	GLCall(glEnableVertexAttribArray(aNormal));
+	GLCall(GL_ARRAY_BUFFER, normalbuffer);
+	GLCall(glVertexAttribPointer(aNormal, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0));
 
 	/*rendering*/
 
 	/*MVP into vertex shader*/
 	
 	glm::vec3 m_position = glm::vec3(0, 0, 80);
-
+	/*
 	const float radius = 80.0f;
 	float camX = sin(glutGet(GLUT_ELAPSED_TIME)) * radius;
-	float camZ = cos(glutGet(GLUT_ELAPSED_TIME)) * radius;
+	float camZ = cos(glutGet(GLUT_ELAPSED_TIME)) * radius;*/
 
-	
 	//glm::mat4 view = glm::lookAt(glm::vec3(1, 2, 3), glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));//(1, 2, 3)
-
 	//cameraPos = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom)) * vec4(cameraPos, 1);
 
 	glm::mat4 view = glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp);//cameraPos + cameraFront glm::vec3(0, 0, 0)
@@ -302,6 +313,20 @@ void myDisplay() {
 	assert(mvpId != -1);
 	GLCall(glUniformMatrix4fv(mvpId, 1, GL_FALSE, &mvp[0][0]));
 
+	glm::mat4 mv = view * model;
+	glm::mat3 mat3_mv = {
+
+			mv[0][0], mv[0][1], mv[0][2],
+			mv[1][0], mv[1][1], mv[1][2],
+			mv[2][0], mv[2][1], mv[2][2]
+	};
+
+	glm::mat3 transpose(glm::mat3 mat3_mv);
+	GLCall(GLuint mvId = glGetUniformLocation(shader, "MV"));
+	assert(mvId != -1);
+	GLCall(glUniformMatrix3fv(mvId, 1, GL_FALSE, &mat3_mv[0][0]));
+
+	
 	GLCall(int location = glGetUniformLocation(shader, "u_Color"));
 	ASSERT(location != -1);
 	GLCall(glUniform4f(location, 0.8f, 0.3f, 0.8f, 1.0f));
@@ -311,6 +336,7 @@ void myDisplay() {
 	//GLCall(glDrawElements(GL_TRIANGLES, tm.NV(), GL_UNSIGNED_INT, nullptr));
 
 	glDisableVertexAttribArray(0);//from tutorial "pos"
+	glDisableVertexAttribArray(1);
 
 	glutSwapBuffers();
 }
@@ -370,15 +396,6 @@ void myMouse(int button, int state, int x, int y) {
 
 }
 
-unsigned int elemPos[] = {
-	0, 1, 2,
-	0, 2, 3
-};
-
-unsigned int elemColor[] = {
-	2, 7, 8,
-	1, 2, 5
-};
 
 static void CreateVertexBuffer() {
 
@@ -401,12 +418,32 @@ static void CreateVertexBuffer() {
 
 	}
 
+	std::vector<glm::vec3> verticesNormal;
+
+	for (unsigned int i = 0; i < tm.NF(); i++) {
+
+		unsigned int tmp = i;
+		cy::TriMesh::TriFace face = tm.FN(i);
+
+		verticesNormal.push_back(glm::vec3(tm.VN(face.v[0]).x, tm.VN(face.v[0]).y, tm.VN(face.v[0]).z));
+		verticesNormal.push_back(glm::vec3(tm.VN(face.v[1]).x, tm.VN(face.v[1]).y, tm.VN(face.v[1]).z));
+		verticesNormal.push_back(glm::vec3(tm.VN(face.v[2]).x, tm.VN(face.v[2]).y, tm.VN(face.v[2]).z));
+
+	}
+
 	numberOfV = vertices.size();
-	/*bind buffer*/
-	GLCall(glGenBuffers(1, &vbo));//in this case only create 1 buffer
-	GLCall(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+	numberOfVN = verticesNormal.size();
+
+	/*bind vertex buffer*/
+	GLCall(glGenBuffers(1, &vertexbuffer));//in this case only create 1 buffer
+	GLCall(glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer));
 	//GLCall(glBufferData(GL_ARRAY_BUFFER, tm.NV() * sizeof(cy::Vec3f), &tm.V(0), GL_STATIC_DRAW));
 	GLCall(glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW));
+
+	/* normal buffer */
+	GLCall(glGenBuffers(1, &normalbuffer));
+	GLCall(glBindBuffer(GL_ARRAY_BUFFER, normalbuffer));
+	GLCall(glBufferData(GL_ARRAY_BUFFER, verticesNormal.size() * sizeof(glm::vec3), &verticesNormal[0], GL_STATIC_DRAW));
 
 	/*calculate bounding box*/
 	// Cube 1x1x1, centered on origin
@@ -448,12 +485,26 @@ static void CreateVertexArrayObject() {
 	GLCall(glGenVertexArrays(1, &vao));
 	GLCall(glBindVertexArray(vao));
 
-	/*bind vbo to vao*/
-	GLCall(glVertexArrayVertexBuffer(vao, 0, vbo, 0, sizeof(tm.V(0))));
-	GLCall(glVertexArrayAttribBinding(vao, 0, 0));
-	GLCall(glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, sizeof(tm.V(0))));
-	GLCall(glVertexArrayBindingDivisor(vao, 0, 0));
-	GLCall(glEnableVertexArrayAttrib(vao, 0));
+	pos = 0; // glGetAttribLocation(shader, "pos");
+	
+	aNormal = 1; // glGetAttribLocation(shader, "aNormal");
+
+	/*bind vertexbuffer to vao*/
+
+	GLuint vertexBindingIndex = 0;
+	GLCall(glVertexArrayVertexBuffer(vao, vertexBindingIndex, vertexbuffer, 0, sizeof(glm::vec3)));//sizeof(tm.V(0)
+	GLCall(glVertexArrayAttribBinding(vao, pos, vertexBindingIndex));
+	GLCall(glVertexArrayAttribFormat(vao, pos, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3)));//sizeof(tm.V(0)
+	GLCall(glVertexArrayBindingDivisor(vao, vertexBindingIndex, 0));
+	GLCall(glEnableVertexArrayAttrib(vao, pos));
+
+	/*bind normalbuffer to vao*/
+	GLuint normalBindingIndex = 1;
+	GLCall(glVertexArrayVertexBuffer(vao, normalBindingIndex, normalbuffer, 0, sizeof(glm::vec3)));//sizeof(tm.VN(0))
+	GLCall(glVertexArrayAttribBinding(vao, aNormal, normalBindingIndex));
+	GLCall(glVertexArrayAttribFormat(vao, aNormal, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3)));//sizeof(tm.VN(0))
+	GLCall(glVertexArrayBindingDivisor(vao, normalBindingIndex, 0));
+	GLCall(glEnableVertexArrayAttrib(vao, aNormal));
 }
 
 void drag2(int x, int y) {
