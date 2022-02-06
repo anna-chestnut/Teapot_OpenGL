@@ -24,8 +24,8 @@ in vec3 Normal;
 
 void main()
 {
-	color = clamp(u_Color * vec4(Normal, 1), 0.0f, 1.0f);
-	//color = u_Color * vec4(Normal, 1);
+	//color = clamp(u_Color * vec4(Normal, 1), 0.0f, 1.0f);
+	color = u_Color * vec4(Normal, 1);
 
 	// color = vec4( Normal, 1);
 };

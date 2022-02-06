@@ -61,8 +61,6 @@ float leftLastY = height / 2.0;
 float rightLastX = width / 2.0;
 float rightLastY = height / 2.0;
 float zoom = 0.0f;
-//float xoffset = 0.0f;
-//float yoffset = 0.0f;
 
 unsigned int shader;
 unsigned int numberOfV = 0;
@@ -184,32 +182,6 @@ static unsigned int CreateShader(const std::string& vertexShader, const std::str
     return program;
 }
 
-void CreateShader()
-{
-
-    /*
-      GLuint program = glCreateProgram();
-
-      //compile vertex shader
-      const char* vsSource = ReadFromFile("shader.vertex");
-      GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-      glShaderSource(vs, 1, &vsSource, nullptr);
-      glCompileShader(vs);
-      glAttachShader(program, vs);
-      delete[] vsSource;
-
-      //compile fragment shader
-      const char* fsSource = ReadFromFile("shader.frag");
-      GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-      glShaderSource(fs, 1, &fsSource, nullptr);
-      glCompileShader(fs);
-      glAttachShader(program, fs);
-      delete[] fsSource;
-
-      glLinkProgram(program);
-      */
-}
-
 void ReCompileShader()
 {
 
@@ -244,114 +216,46 @@ void ReCompileShader()
 void myDisplay()
 {
 
-    /*compile shader*/
-    /*
-      cy::GLSLProgram prog;
-      prog.BuildFiles("shader.vert", "shader.frag");
-      prog["mpv"] = mymatrix;
-      prog.Bind();
-      glDrawArrays(...);*/
+    glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     ShaderProgramSource source = ParseShader("res/shaders/Teapot.shader");
     shader = CreateShader(source.VertexSource, source.FragmentSource);
+    GLCall(glBindVertexArray(vao));
     GLCall(glUseProgram(shader));
 
-    /*
-      cy::GLSLProgram prog;
-      prog.BuildFiles("shader.vert", "shader.frag");
 
-      cy::Matrix3f rot = cy::Matrix3f::RotationY(0);
-      //cy::Vec3f transVec = cy::Vec3f(0, 0, 0);
-      cy::Matrix4f view = cy::Matrix4f::View(cy::Vec3f(0, 0, 80), cy::Vec3f(0, 0, 0), cy::Vec3f(0, 1, 0));
-      //cy::Matrix4f trans = cy::Matrix4f::Translation(transVec);
-      cy::Matrix4f persProjection = cy::Matrix4f::Perspective(0.698f, float(width) / float(height), 0.1f, 1000.0f);
-      cy::Matrix4f model = cy::Matrix4f(1.0f);
-      cy::Matrix4f mvp = persProjection * view * model;
-
-      prog["MVP"] = mvp;
-      prog.Bind();*/
-
-      /*tell OpenGL how to interpret data from vertex buffer object*/
-      //GLCall(GLuint pos = glGetAttribLocation(shader, "pos"));
-      //GLCall(glUseProgram(shader));
-
-      /* shader (location = 0) pos */
-      // GLCall(glEnableVertexAttribArray(pos));
-      // GLCall(GL_ARRAY_BUFFER, vertexbuffer);
-      // GLCall(glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid *)0));
-    GLCall(glVertexArrayBindingDivisor(vao, vertexBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(vao, pos));
-    /* shader (location = 1) aNoraml */
-    // GLCall(glEnableVertexAttribArray(aNormal));
-    // GLCall(GL_ARRAY_BUFFER, normalbuffer);
-    // GLCall(glVertexAttribPointer(aNormal, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid *)0));
-    GLCall(glVertexArrayBindingDivisor(vao, normalBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(vao, aNormal));
     /*rendering*/
 
     /*MVP into vertex shader*/
-
-    glm::vec3 m_position = glm::vec3(0, 0, 80);
-    /*
-      const float radius = 80.0f;
-      float camX = sin(glutGet(GLUT_ELAPSED_TIME)) * radius;
-      float camZ = cos(glutGet(GLUT_ELAPSED_TIME)) * radius;*/
-
-      //glm::mat4 view = glm::lookAt(glm::vec3(1, 2, 3), glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));//(1, 2, 3)
-      //cameraPos = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, zoom)) * vec4(cameraPos, 1);
-
     glm::mat4 view = glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
-
-    //glm::mat4 Projection2 = glm::ortho(-4.0f / 3.0f, 4.0f / 3.0f, -1.0f, 1.0f, -1.0f, 1.0f);
-    //glm::mat4 Projection = glm::ortho(-(float)width / (float)height, (float)width / (float)height, -1.0f, 1.0f, 0.0f, 100.0f); // In world coordinates
-    glm::mat4 Projection = glm::ortho(-30.0f * (float)width / (float)height, 30.0f * (float)width / (float)height, -30.0f, 30.0f, 0.0f, 100.0f); // In world coordinates
-
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
-    glm::mat4 View = glm::lookAt(
-        glm::vec3(0, 0, -80), // Camera is at (0,0,80), in World Space
-        glm::vec3(0, 0, 0),   // and looks at the origin
-        glm::vec3(0, -1, 0)   // Head is up (set to 0,-1,0 to look upside-down)
-    );
-
     glm::mat4 model = glm::mat4(1.0f); //translation*rotation*scale
-
-    //glm::vec4 myVector(10.0f, 10.0f, 10.0f, 0.0f);
-    //glm::vec4 transformedVector = myMatrix * myVector;
-    /*
-      model = glm::translate(model, glm::vec3(xoffset, yoffset, 0.0f));
-      model = glm::rotate(model, glm::radians(xoffset), glm::vec3(0.0, 1.0, 1.0));
-      model = glm::rotate(model, glm::radians(-yoffset), glm::vec3(1.0, 0.0, 1.0));
-      model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
-      */
     glm::mat4 mvp = projection * transform * view * rotation * model;
 
     GLCall(GLuint mvpId = glGetUniformLocation(shader, "MVP"));
     assert(mvpId != -1);
     GLCall(glUniformMatrix4fv(mvpId, 1, GL_FALSE, &mvp[0][0]));
 
-    glm::mat4 mv = view * rotation * model;
+    glm::mat4 mv = transform * view * rotation * model;
     glm::mat3 mat3_mv = {
 
         mv[0][0], mv[0][1], mv[0][2],
         mv[1][0], mv[1][1], mv[1][2],
-        mv[2][0], mv[2][1], mv[2][2] };
-    
+        mv[2][0], mv[2][1], mv[2][2] 
+    };
+
+    glm::mat3 inverse(glm::mat3 mat3_mv);
     glm::mat3 transpose(glm::mat3 mat3_mv);
     GLCall(GLuint mvId = glGetUniformLocation(shader, "MV"));
     assert(mvId != -1);
-    GLCall(glUniformMatrix3fv(mvId, 1, GL_TRUE, &mat3_mv[0][0]));
+    GLCall(glUniformMatrix3fv(mvId, 1, GL_FALSE, &mat3_mv[0][0]));
 
     GLCall(int location = glGetUniformLocation(shader, "u_Color"));
     ASSERT(location != -1);
     GLCall(glUniform4f(location, 1.0f, 1.0f, 1.0f, 1.0f));
 
     GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
-    //GLCall(glDrawArrays(GL_POINTS, 0, tm.NV()));
-    //GLCall(glDrawElements(GL_TRIANGLES, tm.NV(), GL_UNSIGNED_INT, nullptr));
-
-    glDisableVertexAttribArray(0); //from tutorial "pos"
-    glDisableVertexAttribArray(1);
 
     glutSwapBuffers();
 }
@@ -401,8 +305,6 @@ void myMouse(int button, int state, int x, int y)
         if (!leftMouseButtonDown)
         {
             firstLeftMouse = true;
-            //xoffset = 0.0f;
-            //yoffset = 0.0f;
         }
     }
 
@@ -413,8 +315,6 @@ void myMouse(int button, int state, int x, int y)
         if (!rightMouseButtonDown)
         {
             firstRightMouse = true;
-            //xoffset = 0.0f;
-            //yoffset = 0.0f;
         }
     }
 }
@@ -424,7 +324,6 @@ static void CreateVertexBuffer()
 
     /*vertex buffer object*/
     std::ostream* outString = nullptr;
-    //bool readSuccess = tm.LoadFromFileObj("C:\\Users\\123\\Downloads\\teapot.obj", false, outString);
     bool readSuccess = tm.LoadFromFileObj("teapot.obj", false, outString);
     assert(readSuccess);
 
@@ -432,7 +331,6 @@ static void CreateVertexBuffer()
 
     for (unsigned int i = 0; i < tm.NF(); i++)
     {
-
         unsigned int tmp = i;
         cy::TriMesh::TriFace face = tm.F(i);
 
@@ -458,47 +356,13 @@ static void CreateVertexBuffer()
     numberOfVN = verticesNormal.size();
 
     /*bind vertex buffer*/
-    GLCall(glGenBuffers(1, &vertexbuffer)); //in this case only create 1 buffer
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer));
-    //GLCall(glBufferData(GL_ARRAY_BUFFER, tm.NV() * sizeof(cy::Vec3f), &tm.V(0), GL_STATIC_DRAW));
-    GLCall(glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW));
+    GLCall(glCreateBuffers(1, &vertexbuffer)); //in this case only create 1 buffer
+    GLCall(glNamedBufferStorage(vertexbuffer, vertices.size() * sizeof(vertices[0]), &vertices[0], 0));
 
     /* normal buffer */
-    GLCall(glGenBuffers(1, &normalbuffer));
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, normalbuffer));
-    GLCall(glBufferData(GL_ARRAY_BUFFER, verticesNormal.size() * sizeof(glm::vec3), &verticesNormal[0], GL_STATIC_DRAW));
+    GLCall(glCreateBuffers(1, &normalbuffer));
+    GLCall(glNamedBufferStorage(normalbuffer, verticesNormal.size() * sizeof(verticesNormal[0]), &verticesNormal[0], 0));
 
-    /*calculate bounding box*/
-    // Cube 1x1x1, centered on origin
-    /*GLfloat vertices[] = {
-        -0.5, -0.5, -0.5, 1.0,
-         0.5, -0.5, -0.5, 1.0,
-         0.5,  0.5, -0.5, 1.0,
-        -0.5,  0.5, -0.5, 1.0,
-        -0.5, -0.5,  0.5, 1.0,
-         0.5, -0.5,  0.5, 1.0,
-         0.5,  0.5,  0.5, 1.0,
-        -0.5,  0.5,  0.5, 1.0,
-      };
-
-      GLfloat
-          min_x, max_x,
-          min_y, max_y,
-          min_z, max_z;
-      min_x = max_x = tm.V(0).x;
-      min_y = max_y = tm.V(0).y;
-      min_z = max_z = tm.V(0).z;
-      for (int i = 0; i < tm.NV(); i++) {
-          if (tm.V(i).x < min_x) min_x = tm.V(i).x;
-          if (tm.V(i).x > max_x) max_x = tm.V(i).x;
-          if (tm.V(i).y < min_y) min_y = tm.V(i).y;
-          if (tm.V(i).y > max_y) max_y = tm.V(i).y;
-          if (tm.V(i).z < min_z) min_z = tm.V(i).z;
-          if (tm.V(i).z > max_z) max_z = tm.V(i).z;
-      }
-      glm::vec3 size = glm::vec3(max_x - min_x, max_y - min_y, max_z - min_z);
-      glm::vec3 center = glm::vec3((min_x + max_x) / 2, (min_y + max_y) / 2, (min_z + max_z) / 2);
-      transformOrigin = glm::translate(glm::mat4(1), center) * glm::scale(glm::mat4(1), size);*/
 }
 
 static void CreateVertexArrayObject()
@@ -506,27 +370,21 @@ static void CreateVertexArrayObject()
 
     /*create vertex array object*/
 
-    GLCall(glGenVertexArrays(1, &vao));
-    GLCall(glBindVertexArray(vao));
+    GLCall(glCreateVertexArrays(1, &vao));
 
     pos = 0; // glGetAttribLocation(shader, "pos");
-
     aNormal = 1; // glGetAttribLocation(shader, "aNormal");
 
     /*bind vertexbuffer to vao*/
-
     GLCall(glVertexArrayVertexBuffer(vao, vertexBindingIndex, vertexbuffer, 0, sizeof(glm::vec3))); //sizeof(tm.V(0)
     GLCall(glVertexArrayAttribFormat(vao, pos, 3, GL_FLOAT, GL_FALSE, 0));                          //sizeof(tm.V(0)
-
     GLCall(glVertexArrayAttribBinding(vao, pos, vertexBindingIndex));
     GLCall(glVertexArrayBindingDivisor(vao, vertexBindingIndex, 0));
     GLCall(glEnableVertexArrayAttrib(vao, pos));
 
     /*bind normalbuffer to vao*/
-
     GLCall(glVertexArrayVertexBuffer(vao, normalBindingIndex, normalbuffer, 0, sizeof(glm::vec3))); //sizeof(tm.VN(0))
     GLCall(glVertexArrayAttribFormat(vao, aNormal, 3, GL_FLOAT, GL_FALSE, 0));                      //sizeof(tm.VN(0))
-
     GLCall(glVertexArrayAttribBinding(vao, aNormal, normalBindingIndex));
     GLCall(glVertexArrayBindingDivisor(vao, normalBindingIndex, 0));
     GLCall(glEnableVertexArrayAttrib(vao, aNormal));
@@ -612,7 +470,6 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    glClearColor(0, 0, 0, 0);
 
     CreateVertexBuffer();
 
@@ -625,9 +482,6 @@ int main(int argc, char** argv)
     glutMouseFunc(myMouse);
     glutMotionFunc(drag2);
     //glutIdleFunc(myIdle);
-
-    //OpenGL initialization
-    //GLuint program = glCreateProgram();
 
     glutMainLoop();
     return 0;
