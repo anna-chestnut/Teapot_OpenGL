@@ -10,7 +10,7 @@ out vec3 Normal;
 
 void main()
 {
-	gl_Position = 0.05 * MVP * vec4( pos, 1);
+	gl_Position = 0.05 * MVP * vec4(pos, 1);
 	Normal = MV * aNormal;
 };
 
@@ -24,7 +24,8 @@ in vec3 Normal;
 
 void main()
 {
-	color = u_Color * vec4(Normal, 1);
-	
-	//color = vec4( Normal, 1);
+	color = clamp(u_Color * vec4(Normal, 1), 0.0f, 1.0f);
+	//color = u_Color * vec4(Normal, 1);
+
+	// color = vec4( Normal, 1);
 };
