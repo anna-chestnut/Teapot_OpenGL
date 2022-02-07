@@ -86,7 +86,10 @@ std::vector<glm::vec3> vertices;
 std::vector<glm::vec3> verticesNormal;
 
 // lighting
-glm::vec3 lightPos(-60.0f, 45.0f, 20.0f);//1.2f, 1.0f, 2.0f
+glm::vec3 lightPos(-60.0f, 45.0f, 20.0f);//1.2f, 1.0f, 2.0f -60.0f, 45.0f, 20.0f
+glm::vec3 lightPosOrigin(-60.0f, 45.0f, 20.0f);
+float degree = 0.0f;
+float horDegree = 0.0f;
 
 static void GLClearError()
 {
@@ -280,11 +283,11 @@ void myDisplay()
     GLCall(location = glGetUniformLocation(shader, "lightPos"));
     assert(location != -1);
     GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
-    /*
+    
     GLCall(location = glGetUniformLocation(shader, "viewPos"));
     assert(location != -1);
     GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
-    */
+    
 
     //MVP
     GLCall(GLuint modelId = glGetUniformLocation(shader, "model"));
@@ -484,14 +487,30 @@ void drag2(int x, int y)
         leftLastX = xpos;
         leftLastY = ypos;
 
-        float sensitivity = 0.1f; // change this value to your liking
+        float sensitivity = 0.01f; // change this value to your liking
         xoffset *= sensitivity;
         yoffset *= sensitivity;
 
-        rotation = glm::rotate(rotation, glm::radians(xoffset), glm::vec3(0.0f, 1.0f, 0.0f));
-        rotation = glm::rotate(rotation, glm::radians(-yoffset), glm::vec3(1.0f, 0.0f, 1.0f));
+        
 
         //camera.ProcessMouseMovement(xoffset, yoffset);
+
+        int mods = glutGetModifiers();
+        if (mods & GLUT_ACTIVE_CTRL) {
+
+            degree += xoffset;
+            glm::vec3 rotate(cos(degree), sin(degree), 1);
+            lightPos = rotate * lightPosOrigin;
+
+            horDegree += yoffset;
+            glm::vec3 horRotate(1, sin(horDegree), cos(horDegree));
+            lightPos = horRotate * lightPosOrigin;
+        }
+        else {
+
+            rotation = glm::rotate(rotation, glm::radians(xoffset), glm::vec3(0.0f, 1.0f, 0.0f));
+            rotation = glm::rotate(rotation, glm::radians(-yoffset), glm::vec3(1.0f, 0.0f, 1.0f));
+        }
     }
 
     glutPostRedisplay();
@@ -528,6 +547,11 @@ int main(int argc, char** argv)
     ShaderProgramSource source = ParseShader("res/shaders/Teapot.shader");
     shader = CreateShader(source.VertexSource, source.FragmentSource);
     assert(shader != -1);
+
+    glm::vec3 rotate(cos(degree), sin(degree), 1);
+    lightPos = rotate * lightPosOrigin;
+    glm::vec3 horRotate(1, sin(horDegree), cos(horDegree));
+    lightPos = horRotate * lightPosOrigin;
 
     glutDisplayFunc(myDisplay);
 
