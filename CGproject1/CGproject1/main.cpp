@@ -82,9 +82,12 @@ GLuint aNormal;
 GLuint vertexBindingIndex = 0;
 GLuint normalBindingIndex = 1;
 
-
 std::vector<glm::vec3> vertices;
 std::vector<glm::vec3> verticesNormal;
+
+// lighting
+glm::vec3 lightPos(-60.0f, 45.0f, 20.0f);//1.2f, 1.0f, 2.0f
+
 static void GLClearError()
 {
 
@@ -264,6 +267,26 @@ void myDisplay()
     assert(mvId != -1);
     GLCall(glUniformMatrix3fv(mvId, 1, GL_FALSE, &mat3_mv[0][0]));
     */
+    
+    //setting light pos & color
+    GLCall(GLuint location = glGetUniformLocation(shader, "objectColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, 1.0f, 0.0f, 0.0f));//1.0f, 0.5f, 0.31f
+
+    GLCall(location = glGetUniformLocation(shader, "lightColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, 1.0f, 1.0f, 1.0f));
+
+    GLCall(location = glGetUniformLocation(shader, "lightPos"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+    /*
+    GLCall(location = glGetUniformLocation(shader, "viewPos"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
+    */
+
+    //MVP
     GLCall(GLuint modelId = glGetUniformLocation(shader, "model"));
     assert(modelId != -1);
     GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
@@ -276,9 +299,6 @@ void myDisplay()
     assert(proId != -1);
     GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
-    GLCall(int location = glGetUniformLocation(shader, "u_Color"));
-    ASSERT(location != -1);
-    GLCall(glUniform4f(location, 1.0f, 1.0f, 1.0f, 1.0f));
 
     GLCall(glBindVertexArray(vao));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
@@ -507,6 +527,7 @@ int main(int argc, char** argv)
 
     ShaderProgramSource source = ParseShader("res/shaders/Teapot.shader");
     shader = CreateShader(source.VertexSource, source.FragmentSource);
+    assert(shader != -1);
 
     glutDisplayFunc(myDisplay);
 
