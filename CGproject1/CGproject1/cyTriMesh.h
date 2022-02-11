@@ -611,4 +611,3 @@ typedef cy::TriMesh cyTriMesh;	//!< Triangular Mesh Class
 
 _CY_CRT_SECURE_RESUME_WARNINGS
 #endif
-

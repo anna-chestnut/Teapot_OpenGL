@@ -39,6 +39,9 @@
     <ClCompile Include="glad.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="lodepng.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cyTriMesh.h">
@@ -903,6 +906,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="res\include\camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="res\include\lodepng.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

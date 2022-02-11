@@ -5,6 +5,7 @@
 #include "cyGL.h"
 #include "cyMatrix.h"
 #include "res/include/camera.h"
+#include "res/include/lodepng.h"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -35,6 +36,7 @@ TriMesh tm;
 GLuint vertexbuffer;
 GLuint normalbuffer;
 GLuint vao;
+GLuint texture1;
 //int width = 1920, height = 1080;
 /*
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 60.0f); //glm::vec3(0.0f, 0.0f, 3.0f);
@@ -91,6 +93,10 @@ glm::vec3 lightPosOrigin(-60.0f, 45.0f, 20.0f);
 float degree = 0.0f;
 float horDegree = 0.0f;
 
+//texture pixels
+std::vector<unsigned char> image; //the raw pixels
+unsigned width, height;
+
 static void GLClearError()
 {
 
@@ -109,6 +115,20 @@ static bool GLLogCall(const char* function, const char* file, int line)
 
     return true;
 }
+
+void decodeTwoSteps(const char* filename) {
+    std::vector<unsigned char> png;
+    
+    //load and decode
+    unsigned error = lodepng::load_file(png, filename);
+    if (!error) error = lodepng::decode(image, width, height, png);
+
+    //if there's an error, display it
+    if (error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+
+    //the pixels are now in the vector "image", 4 bytes per pixel, ordered RGBARGBA..., use it as texture, draw it, ...
+}
+
 
 char* ReadFromFile(const std::string& fileName)
 {
@@ -240,6 +260,7 @@ void myDisplay()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     
+    
     GLCall(glUseProgram(shader));
 
 
@@ -302,6 +323,15 @@ void myDisplay()
     assert(proId != -1);
     GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
+
+    //texture
+    GLCall(location = glGetUniformLocation(shader, "tex"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 0));
+
+    // bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture1);
 
     GLCall(glBindVertexArray(vao));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
@@ -374,7 +404,7 @@ static void CreateVertexBuffer()
 
     /*vertex buffer object*/
     std::ostream* outString = nullptr;
-    bool readSuccess = tm.LoadFromFileObj("teapot.obj", false, outString);
+    bool readSuccess = tm.LoadFromFileObj("res/texture/teapot.obj", false, outString);
     assert(readSuccess);
 
 
@@ -402,7 +432,7 @@ static void CreateVertexBuffer()
 
     numberOfV = vertices.size();
     
-    /*bind vertex buffer*/
+    /* vertex buffer*/
     GLCall(glCreateBuffers(1, &vertexbuffer)); //in this case only create 1 buffer
     GLCall(glNamedBufferStorage(vertexbuffer, vertices.size() * sizeof(vertices[0]), &vertices[0], 0));
 
@@ -436,6 +466,27 @@ static void CreateVertexArrayObject()
     GLCall(glVertexArrayAttribBinding(vao, aNormal, normalBindingIndex));
     GLCall(glVertexArrayBindingDivisor(vao, normalBindingIndex, 0));
     GLCall(glEnableVertexArrayAttrib(vao, aNormal));
+}
+
+static void CreateTexture() {
+
+    GLCall(glGenTextures(1, &texture1));
+    GLCall(glBindTexture(GL_TEXTURE_2D, texture1));
+
+    //int width, height;
+
+    decodeTwoSteps("res/texture/brick.png");
+    assert(&image);
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image));
+    GLCall(glGenerateMipmap(GL_TEXTURE_2D));
+    
+    // set texture filtering parameters
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
 void drag2(int x, int y)
@@ -542,7 +593,8 @@ int main(int argc, char** argv)
     CreateVertexBuffer();
 
     CreateVertexArrayObject();
-    //CreateVAO();
+
+    CreateTexture();
 
     ShaderProgramSource source = ParseShader("res/shaders/Teapot.shader");
     shader = CreateShader(source.VertexSource, source.FragmentSource);

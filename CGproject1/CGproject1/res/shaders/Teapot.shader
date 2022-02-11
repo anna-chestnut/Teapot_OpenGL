@@ -3,6 +3,7 @@
 
 layout(location = 0) in vec3 pos;
 layout(location = 1) in vec3 aNormal;
+layout(location = 2) in vec2 aTexCoord;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -10,14 +11,15 @@ uniform mat4 projection;
 
 out vec3 Normal;
 out vec3 FragPos;
+out vec2 TexCoord;
 
 void main()
 {
-	//gl_Position = 0.05 * MVP * vec4(pos, 1);
 	gl_Position = projection * view * model * vec4(pos, 1);
-
 	FragPos = vec3(model * vec4(pos, 1.0));
-	Normal = mat3(transpose(inverse(view * model))) * aNormal;   //clamp(transpose(inverse(view * model)) * vec4(aNormal, 1.0f), 0.0f, 1.0f);
+	Normal = mat3(transpose(inverse(view * model))) * aNormal;
+
+	TexCoord = aTexCoord;//vec2(aTexCoord.x, aTexCoord.y);
 };
 
 #shader fragment
@@ -25,14 +27,15 @@ void main()
 
 layout(location = 0) out vec4 color;
 
-//uniform vec4 u_Color;
 uniform vec3 lightPos;
 uniform vec3 lightColor;
 uniform vec3 viewPos;
 uniform vec3 objectColor;
+uniform sampler2D tex;
 
 in vec3 Normal;
 in vec3 FragPos;
+in vec2 TexCoord;
 
 void main()
 {
@@ -56,4 +59,6 @@ void main()
 	vec3 result = (ambient + diffuse + specular) * objectColor;
 	color = vec4(result, 1.0);
 
+	//texture
+	color = texture(tex, TexCoord);
 };
