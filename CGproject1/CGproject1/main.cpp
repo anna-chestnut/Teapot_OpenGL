@@ -35,6 +35,7 @@ using namespace cy;
 TriMesh tm;
 GLuint vertexbuffer;
 GLuint normalbuffer;
+GLuint texturebuffer;
 GLuint vao;
 GLuint texture1;
 //int width = 1920, height = 1080;
@@ -79,13 +80,14 @@ unsigned int shader;
 unsigned int numberOfV = 0;
 //unsigned int numberOfVN = 0;
 
-GLuint pos;
-GLuint aNormal;
+GLuint pos, aNormal, aTexCoord;
 GLuint vertexBindingIndex = 0;
 GLuint normalBindingIndex = 1;
+GLuint textureBindingIndex = 2;
 
 std::vector<glm::vec3> vertices;
 std::vector<glm::vec3> verticesNormal;
+std::vector<glm::vec3> verticesTexture;
 
 // lighting
 glm::vec3 lightPos(-60.0f, 45.0f, 20.0f);//1.2f, 1.0f, 2.0f -60.0f, 45.0f, 20.0f
@@ -293,21 +295,21 @@ void myDisplay()
     */
     
     //setting light pos & color
-    GLCall(GLuint location = glGetUniformLocation(shader, "objectColor"));
-    assert(location != -1);
-    GLCall(glUniform3f(location, 1.0f, 0.0f, 0.0f));//1.0f, 0.5f, 0.31f
+    //GLCall(GLuint location = glGetUniformLocation(shader, "objectColor"));
+    //assert(location != -1);
+    //GLCall(glUniform3f(location, 1.0f, 0.0f, 0.0f));//1.0f, 0.5f, 0.31f
 
-    GLCall(location = glGetUniformLocation(shader, "lightColor"));
-    assert(location != -1);
-    GLCall(glUniform3f(location, 1.0f, 1.0f, 1.0f));
+    //GLCall(location = glGetUniformLocation(shader, "lightColor"));
+    //assert(location != -1);
+    //GLCall(glUniform3f(location, 1.0f, 1.0f, 1.0f));
 
-    GLCall(location = glGetUniformLocation(shader, "lightPos"));
-    assert(location != -1);
-    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
-    
-    GLCall(location = glGetUniformLocation(shader, "viewPos"));
-    assert(location != -1);
-    GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
+    //GLCall(location = glGetUniformLocation(shader, "lightPos"));
+    //assert(location != -1);
+    //GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+    //
+    //GLCall(location = glGetUniformLocation(shader, "viewPos"));
+    //assert(location != -1);
+    //GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
     
 
     //MVP
@@ -325,7 +327,7 @@ void myDisplay()
 
 
     //texture
-    GLCall(location = glGetUniformLocation(shader, "tex"));
+    GLCall(GLuint location = glGetUniformLocation(shader, "tex"));
     assert(location != -1);
     GLCall(glUniform1i(location, 0));
 
@@ -430,6 +432,17 @@ static void CreateVertexBuffer()
         verticesNormal.push_back(glm::vec3(tm.VN(face.v[2]).x, tm.VN(face.v[2]).y, tm.VN(face.v[2]).z));
     }
 
+    for (unsigned int i = 0; i < tm.NF(); i++)
+    {
+
+        unsigned int tmp = i;
+        cy::TriMesh::TriFace face = tm.FT(i);
+
+        verticesTexture.push_back(glm::vec3(tm.VT(face.v[0]).x, tm.VT(face.v[0]).y, tm.VT(face.v[0]).z));
+        verticesTexture.push_back(glm::vec3(tm.VT(face.v[1]).x, tm.VT(face.v[1]).y, tm.VT(face.v[1]).z));
+        verticesTexture.push_back(glm::vec3(tm.VT(face.v[2]).x, tm.VT(face.v[2]).y, tm.VT(face.v[2]).z));
+    }
+
     numberOfV = vertices.size();
     
     /* vertex buffer*/
@@ -439,6 +452,10 @@ static void CreateVertexBuffer()
     /* normal buffer */
     GLCall(glCreateBuffers(1, &normalbuffer));
     GLCall(glNamedBufferStorage(normalbuffer, verticesNormal.size() * sizeof(verticesNormal[0]), &verticesNormal[0], 0));
+
+    /* texture coordinate buffer */
+    GLCall(glCreateBuffers(1, &texturebuffer));
+    GLCall(glNamedBufferStorage(texturebuffer, verticesTexture.size() * sizeof(verticesTexture[0]), &verticesTexture[0], 0));
 
 }
 
@@ -452,6 +469,7 @@ static void CreateVertexArrayObject()
 
     pos = 0; // glGetAttribLocation(shader, "pos");
     aNormal = 1; // glGetAttribLocation(shader, "aNormal");
+    aTexCoord = 2; // layout(location = 2) in vec2 aTexCoord;
 
     /*bind vertexbuffer to vao*/
     GLCall(glVertexArrayVertexBuffer(vao, vertexBindingIndex, vertexbuffer, 0, sizeof(glm::vec3))); //sizeof(tm.V(0)
@@ -466,6 +484,13 @@ static void CreateVertexArrayObject()
     GLCall(glVertexArrayAttribBinding(vao, aNormal, normalBindingIndex));
     GLCall(glVertexArrayBindingDivisor(vao, normalBindingIndex, 0));
     GLCall(glEnableVertexArrayAttrib(vao, aNormal));
+
+    /*bind texturebuffer to vao*/
+    GLCall(glVertexArrayVertexBuffer(vao, textureBindingIndex, texturebuffer, 0, sizeof(glm::vec3))); //sizeof(tm.VN(0))
+    GLCall(glVertexArrayAttribFormat(vao, aTexCoord, 3, GL_FLOAT, GL_FALSE, 0));                      //sizeof(tm.VN(0))
+    GLCall(glVertexArrayAttribBinding(vao, aTexCoord, textureBindingIndex));
+    GLCall(glVertexArrayBindingDivisor(vao, textureBindingIndex, 0));
+    GLCall(glEnableVertexArrayAttrib(vao, aTexCoord));
 }
 
 static void CreateTexture() {
@@ -477,7 +502,7 @@ static void CreateTexture() {
 
     decodeTwoSteps("res/texture/brick.png");
     assert(&image);
-    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image));
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]));
     GLCall(glGenerateMipmap(GL_TEXTURE_2D));
     
     // set texture filtering parameters

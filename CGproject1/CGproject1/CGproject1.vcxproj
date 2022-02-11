@@ -132,7 +132,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>GLEW_STATIC;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)CGproject1\res\vendor;$(SolutionDir)Dependencies\freeglut\include;$(SolutionDir)Dependencies\glew-2.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)CGproject1\res\vendor;$(SolutionDir)Dependencies\freeglut\include;$(SolutionDir)Dependencies\glew-2.1.0\include;$(SolutionDir)Dependencies</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -170,6 +170,7 @@
     <ClInclude Include="cyVector.h" />
     <ClInclude Include="cyMatrix.h" />
     <ClInclude Include="res\include\camera.h" />
+    <ClInclude Include="res\include\glad\glad.h" />
     <ClInclude Include="res\include\lodepng.h" />
     <ClInclude Include="res\vendor\glm\common.hpp" />
     <ClInclude Include="res\vendor\glm\detail\compute_common.hpp" />
