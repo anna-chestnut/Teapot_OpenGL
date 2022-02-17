@@ -5,16 +5,18 @@
 #include "cyGL.h"
 #include "cyMatrix.h"
 #include "res/include/camera.h"
+#include "res/include/lodepng.h"
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
 
-#include <iostream>;
-#include <fstream>;
-#include <string>;
-#include <sstream>;
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
 #include <assert.h>
+#include <iostream>
 
 using namespace cy;
 #define PR_DEBUG
@@ -34,7 +36,10 @@ using namespace cy;
 TriMesh tm;
 GLuint vertexbuffer;
 GLuint normalbuffer;
+GLuint texturebuffer;
 GLuint vao;
+GLuint texture1;
+GLuint spectexture;
 //int width = 1920, height = 1080;
 /*
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 60.0f); //glm::vec3(0.0f, 0.0f, 3.0f);
@@ -77,19 +82,27 @@ unsigned int shader;
 unsigned int numberOfV = 0;
 //unsigned int numberOfVN = 0;
 
-GLuint pos;
-GLuint aNormal;
+GLuint pos, aNormal, aTexCoord;
 GLuint vertexBindingIndex = 0;
 GLuint normalBindingIndex = 1;
+GLuint textureBindingIndex = 2;
 
 std::vector<glm::vec3> vertices;
 std::vector<glm::vec3> verticesNormal;
+std::vector<glm::vec3> verticesTexture;
 
 // lighting
 glm::vec3 lightPos(-60.0f, 45.0f, 20.0f);//1.2f, 1.0f, 2.0f -60.0f, 45.0f, 20.0f
 glm::vec3 lightPosOrigin(-60.0f, 45.0f, 20.0f);
 float degree = 0.0f;
 float horDegree = 0.0f;
+
+//texture pixels
+std::vector<unsigned char> image; //the raw pixels
+std::vector<unsigned char> specimage; //the raw pixels
+unsigned width, height;
+
+std::string objName;
 
 static void GLClearError()
 {
@@ -109,6 +122,22 @@ static bool GLLogCall(const char* function, const char* file, int line)
 
     return true;
 }
+
+std::vector<unsigned char> decodeTwoSteps(const char* filename, std::vector<unsigned char> decodeImage) {
+    std::vector<unsigned char> png;
+    
+    //load and decode
+    unsigned error = lodepng::load_file(png, filename);
+    if (!error) error = lodepng::decode(decodeImage, width, height, png);
+
+    //if there's an error, display it
+    if (error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+
+    return decodeImage;
+
+    //the pixels are now in the vector "image", 4 bytes per pixel, ordered RGBARGBA..., use it as texture, draw it, ...
+}
+
 
 char* ReadFromFile(const std::string& fileName)
 {
@@ -240,6 +269,7 @@ void myDisplay()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     
+    
     GLCall(glUseProgram(shader));
 
 
@@ -283,11 +313,11 @@ void myDisplay()
     GLCall(location = glGetUniformLocation(shader, "lightPos"));
     assert(location != -1);
     GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
-    
+    /*
     GLCall(location = glGetUniformLocation(shader, "viewPos"));
     assert(location != -1);
     GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
-    
+    */
 
     //MVP
     GLCall(GLuint modelId = glGetUniformLocation(shader, "model"));
@@ -302,6 +332,24 @@ void myDisplay()
     assert(proId != -1);
     GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
+
+    //texture
+    GLCall(location = glGetUniformLocation(shader, "tex"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 0));
+
+    // bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+
+    //specular texture
+    GLCall(location = glGetUniformLocation(shader, "specTex"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 1));
+
+    // bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, spectexture);
 
     GLCall(glBindVertexArray(vao));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
@@ -374,7 +422,10 @@ static void CreateVertexBuffer()
 
     /*vertex buffer object*/
     std::ostream* outString = nullptr;
-    bool readSuccess = tm.LoadFromFileObj("teapot.obj", false, outString);
+    std::string str = "res/texture/" + objName;
+    const char* fileLocation = str.c_str();
+    std::cout << fileLocation << std::endl;
+    bool readSuccess = tm.LoadFromFileObj("res/texture/teapot.obj", false, outString);
     assert(readSuccess);
 
 
@@ -400,15 +451,30 @@ static void CreateVertexBuffer()
         verticesNormal.push_back(glm::vec3(tm.VN(face.v[2]).x, tm.VN(face.v[2]).y, tm.VN(face.v[2]).z));
     }
 
+    for (unsigned int i = 0; i < tm.NF(); i++)
+    {
+
+        unsigned int tmp = i;
+        cy::TriMesh::TriFace face = tm.FT(i);
+
+        verticesTexture.push_back(glm::vec3(tm.VT(face.v[0]).x, tm.VT(face.v[0]).y, tm.VT(face.v[0]).z));
+        verticesTexture.push_back(glm::vec3(tm.VT(face.v[1]).x, tm.VT(face.v[1]).y, tm.VT(face.v[1]).z));
+        verticesTexture.push_back(glm::vec3(tm.VT(face.v[2]).x, tm.VT(face.v[2]).y, tm.VT(face.v[2]).z));
+    }
+
     numberOfV = vertices.size();
     
-    /*bind vertex buffer*/
+    /* vertex buffer*/
     GLCall(glCreateBuffers(1, &vertexbuffer)); //in this case only create 1 buffer
     GLCall(glNamedBufferStorage(vertexbuffer, vertices.size() * sizeof(vertices[0]), &vertices[0], 0));
 
     /* normal buffer */
     GLCall(glCreateBuffers(1, &normalbuffer));
     GLCall(glNamedBufferStorage(normalbuffer, verticesNormal.size() * sizeof(verticesNormal[0]), &verticesNormal[0], 0));
+
+    /* texture coordinate buffer */
+    GLCall(glCreateBuffers(1, &texturebuffer));
+    GLCall(glNamedBufferStorage(texturebuffer, verticesTexture.size() * sizeof(verticesTexture[0]), &verticesTexture[0], 0));
 
 }
 
@@ -422,6 +488,7 @@ static void CreateVertexArrayObject()
 
     pos = 0; // glGetAttribLocation(shader, "pos");
     aNormal = 1; // glGetAttribLocation(shader, "aNormal");
+    aTexCoord = 2; // layout(location = 2) in vec2 aTexCoord;
 
     /*bind vertexbuffer to vao*/
     GLCall(glVertexArrayVertexBuffer(vao, vertexBindingIndex, vertexbuffer, 0, sizeof(glm::vec3))); //sizeof(tm.V(0)
@@ -436,6 +503,48 @@ static void CreateVertexArrayObject()
     GLCall(glVertexArrayAttribBinding(vao, aNormal, normalBindingIndex));
     GLCall(glVertexArrayBindingDivisor(vao, normalBindingIndex, 0));
     GLCall(glEnableVertexArrayAttrib(vao, aNormal));
+
+    /*bind texturebuffer to vao*/
+    GLCall(glVertexArrayVertexBuffer(vao, textureBindingIndex, texturebuffer, 0, sizeof(glm::vec3))); //sizeof(tm.VN(0))
+    GLCall(glVertexArrayAttribFormat(vao, aTexCoord, 3, GL_FLOAT, GL_FALSE, 0));                      //sizeof(tm.VN(0))
+    GLCall(glVertexArrayAttribBinding(vao, aTexCoord, textureBindingIndex));
+    GLCall(glVertexArrayBindingDivisor(vao, textureBindingIndex, 0));
+    GLCall(glEnableVertexArrayAttrib(vao, aTexCoord));
+}
+
+static void CreateTexture() {
+
+    GLCall(glGenTextures(1, &texture1));
+    GLCall(glBindTexture(GL_TEXTURE_2D, texture1));
+
+    image = decodeTwoSteps("res/texture/brick.png", image);
+    assert(&image);
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]));
+    GLCall(glGenerateMipmap(GL_TEXTURE_2D));
+    
+    // set texture filtering parameters
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    GLCall(glGenTextures(1, &spectexture));
+    GLCall(glBindTexture(GL_TEXTURE_2D, spectexture));
+
+    specimage = decodeTwoSteps("res/texture/brick.png", specimage);
+    assert(&specimage);
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &specimage[0]));
+    GLCall(glGenerateMipmap(GL_TEXTURE_2D));
+
+    // set texture filtering parameters
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
 void drag2(int x, int y)
@@ -516,9 +625,13 @@ void drag2(int x, int y)
     glutPostRedisplay();
 }
 
-
 int main(int argc, char** argv)
 {
+    
+    /*for (int i = 0; i < argc; ++i)
+        std::cout << argv[i] << "\n";
+
+    objName = argv[1];*/
 
     glutInit(&argc, argv);
     glutInitContextFlags(GLUT_DEBUG);
@@ -542,7 +655,8 @@ int main(int argc, char** argv)
     CreateVertexBuffer();
 
     CreateVertexArrayObject();
-    //CreateVAO();
+
+    CreateTexture();
 
     ShaderProgramSource source = ParseShader("res/shaders/Teapot.shader");
     shader = CreateShader(source.VertexSource, source.FragmentSource);
