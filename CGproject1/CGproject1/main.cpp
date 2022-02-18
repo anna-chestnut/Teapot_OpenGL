@@ -301,18 +301,34 @@ void myDisplay()
     GLCall(glUniformMatrix3fv(mvId, 1, GL_FALSE, &mat3_mv[0][0]));
     */
     
-    //setting light pos & color
-    GLCall(GLuint location = glGetUniformLocation(shader, "objectColor"));
-    assert(location != -1);
-    GLCall(glUniform3f(location, 1.0f, 0.0f, 0.0f));//1.0f, 0.5f, 0.31f
+    ////setting light pos & color
+    //GLCall(GLuint location = glGetUniformLocation(shader, "objectColor"));
+    //assert(location != -1);
+    //GLCall(glUniform3f(location, 1.0f, 0.0f, 0.0f));//1.0f, 0.5f, 0.31f
 
-    GLCall(location = glGetUniformLocation(shader, "lightColor"));
+    GLCall(GLuint location = glGetUniformLocation(shader, "ambientColor"));
     assert(location != -1);
-    GLCall(glUniform3f(location, 1.0f, 1.0f, 1.0f));
+    GLCall(glUniform3f(location, tm.M(0).Ka[0], tm.M(0).Ka[1], tm.M(0).Ka[2]));
+
+    GLCall(location = glGetUniformLocation(shader, "diffuseColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, tm.M(0).Kd[0], tm.M(0).Kd[1], tm.M(0).Kd[2]));
+
+    GLCall(location = glGetUniformLocation(shader, "specularColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, tm.M(0).Ks[0], tm.M(0).Ks[1], tm.M(0).Ks[2]));
 
     GLCall(location = glGetUniformLocation(shader, "lightPos"));
     assert(location != -1);
     GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+
+    GLCall(location = glGetUniformLocation(shader, "specularExponent"));
+    assert(location != -1);
+    GLCall(glUniform1f(location, tm.M(0).Ns));
+
+    GLCall(location = glGetUniformLocation(shader, "specularStrength"));
+    assert(location != -1);
+    GLCall(glUniform1f(location, tm.M(0).illum));
     /*
     GLCall(location = glGetUniformLocation(shader, "viewPos"));
     assert(location != -1);
@@ -425,7 +441,7 @@ static void CreateVertexBuffer()
     std::string str = "res/texture/" + objName;
     const char* fileLocation = str.c_str();
     std::cout << fileLocation << std::endl;
-    bool readSuccess = tm.LoadFromFileObj("res/texture/teapot.obj", false, outString);
+    bool readSuccess = tm.LoadFromFileObj("res/texture/teapot.obj", true, outString);
     assert(readSuccess);
 
 
@@ -475,6 +491,7 @@ static void CreateVertexBuffer()
     /* texture coordinate buffer */
     GLCall(glCreateBuffers(1, &texturebuffer));
     GLCall(glNamedBufferStorage(texturebuffer, verticesTexture.size() * sizeof(verticesTexture[0]), &verticesTexture[0], 0));
+
 
 }
 
