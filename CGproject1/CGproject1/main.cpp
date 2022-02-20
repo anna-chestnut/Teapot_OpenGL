@@ -37,9 +37,16 @@ TriMesh tm;
 GLuint vertexbuffer;
 GLuint normalbuffer;
 GLuint texturebuffer;
+GLuint framebuffer = 0;
+GLuint depthbuffer;
 GLuint vao;
+GLuint planeVao;
+GLuint planVertexbuffer;
+GLuint planTexturebuffer;
 GLuint texture1;
 GLuint spectexture;
+GLuint renderedTexture; 
+GLint originFB;
 //int width = 1920, height = 1080;
 /*
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 60.0f); //glm::vec3(0.0f, 0.0f, 3.0f);
@@ -79,6 +86,7 @@ float rightLastY = SCR_HEIGHT / 2.0;
 float zoom = 0.0f;
 
 unsigned int shader;
+unsigned int planShader;
 unsigned int numberOfV = 0;
 //unsigned int numberOfVN = 0;
 
@@ -90,6 +98,9 @@ GLuint textureBindingIndex = 2;
 std::vector<glm::vec3> vertices;
 std::vector<glm::vec3> verticesNormal;
 std::vector<glm::vec3> verticesTexture;
+
+std::vector<glm::vec3> planeVertices;
+std::vector<glm::vec2> planVerticesTexture;
 
 // lighting
 glm::vec3 lightPos(-60.0f, 45.0f, 20.0f);//1.2f, 1.0f, 2.0f -60.0f, 45.0f, 20.0f
@@ -264,11 +275,13 @@ void ReCompileShader()
 
 void myDisplay()
 {
-
-    glClearColor(0, 0, 0, 0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     
+
+    //Set frame buffer target & render
+    GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer));
+    GLCall(glViewport(0, 0, width, height));
+    GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+    //glDrawArrays();   
     
     GLCall(glUseProgram(shader));
 
@@ -301,18 +314,34 @@ void myDisplay()
     GLCall(glUniformMatrix3fv(mvId, 1, GL_FALSE, &mat3_mv[0][0]));
     */
     
-    //setting light pos & color
-    GLCall(GLuint location = glGetUniformLocation(shader, "objectColor"));
-    assert(location != -1);
-    GLCall(glUniform3f(location, 1.0f, 0.0f, 0.0f));//1.0f, 0.5f, 0.31f
+    ////setting light pos & color
+    //GLCall(GLuint location = glGetUniformLocation(shader, "objectColor"));
+    //assert(location != -1);
+    //GLCall(glUniform3f(location, 1.0f, 0.0f, 0.0f));//1.0f, 0.5f, 0.31f
 
-    GLCall(location = glGetUniformLocation(shader, "lightColor"));
+    GLCall(GLuint location = glGetUniformLocation(shader, "ambientColor"));
     assert(location != -1);
-    GLCall(glUniform3f(location, 1.0f, 1.0f, 1.0f));
+    GLCall(glUniform3f(location, tm.M(0).Ka[0], tm.M(0).Ka[1], tm.M(0).Ka[2]));
+
+    GLCall(location = glGetUniformLocation(shader, "diffuseColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, tm.M(0).Kd[0], tm.M(0).Kd[1], tm.M(0).Kd[2]));
+
+    GLCall(location = glGetUniformLocation(shader, "specularColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, tm.M(0).Ks[0], tm.M(0).Ks[1], tm.M(0).Ks[2]));
 
     GLCall(location = glGetUniformLocation(shader, "lightPos"));
     assert(location != -1);
     GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+
+    GLCall(location = glGetUniformLocation(shader, "specularExponent"));
+    assert(location != -1);
+    GLCall(glUniform1f(location, tm.M(0).Ns));
+
+    GLCall(location = glGetUniformLocation(shader, "specularStrength"));
+    assert(location != -1);
+    GLCall(glUniform1f(location, tm.M(0).illum));
     /*
     GLCall(location = glGetUniformLocation(shader, "viewPos"));
     assert(location != -1);
@@ -354,7 +383,21 @@ void myDisplay()
     GLCall(glBindVertexArray(vao));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
 
+    // bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
+    // ---------------------------------
+    GLCall(glGenerateTextureMipmap(renderedTexture));
+    //Set frame buffer target to the back buffer
+    GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, originFB));
+    GLCall(glViewport(0, 0, width, height));
+    glClearColor(0, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    GLCall(glUseProgram(shader));
+    GLCall(glBindVertexArray(planeVao));
+    GLCall(glBindTexture(GL_TEXTURE_2D, renderedTexture));
+    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+
     glutSwapBuffers();
+
 }
 
 float red = 0.0f;
@@ -420,12 +463,13 @@ void myMouse(int button, int state, int x, int y)
 static void CreateVertexBuffer()
 {
 
-    /*vertex buffer object*/
+    // teapot vertex array object
+    // --------------------------
     std::ostream* outString = nullptr;
     std::string str = "res/texture/" + objName;
     const char* fileLocation = str.c_str();
     std::cout << fileLocation << std::endl;
-    bool readSuccess = tm.LoadFromFileObj("res/texture/teapot.obj", false, outString);
+    bool readSuccess = tm.LoadFromFileObj("res/texture/teapot.obj", true, outString);
     assert(readSuccess);
 
 
@@ -476,14 +520,54 @@ static void CreateVertexBuffer()
     GLCall(glCreateBuffers(1, &texturebuffer));
     GLCall(glNamedBufferStorage(texturebuffer, verticesTexture.size() * sizeof(verticesTexture[0]), &verticesTexture[0], 0));
 
+
+    // plane vertex
+    // ------------
+    float allplaneVertices[] = {
+        // positions          // texture Coords 
+         5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
+        -5.0f, -0.5f,  5.0f,  0.0f, 0.0f,
+        -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+
+         5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
+        -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+         5.0f, -0.5f, -5.0f,  2.0f, 2.0f
+    };
+
+    for (unsigned int i = 0; i < 30; i = i+5)
+    {
+        //unsigned int j = i;
+        planeVertices.push_back(glm::vec3(allplaneVertices[i], allplaneVertices[i+1], allplaneVertices[i+2]));
+        /*j += 5;
+        planeVertices.push_back(glm::vec3(allplaneVertices[j], allplaneVertices[j + 1], allplaneVertices[j + 2]));
+        j += 5;
+        planeVertices.push_back(glm::vec3(allplaneVertices[j], allplaneVertices[j + 1], allplaneVertices[j + 2]));*/
+    }
+
+    for (unsigned int i = 0; i < 30; i = i + 5)
+    {
+        //unsigned int j = i + 3;
+        planVerticesTexture.push_back(glm::vec2(allplaneVertices[i], allplaneVertices[i + 1]));
+        /*j += 5;
+        planVerticesTexture.push_back(glm::vec2(allplaneVertices[j], allplaneVertices[j + 1]));
+        j += 5;
+        planVerticesTexture.push_back(glm::vec2(allplaneVertices[j], allplaneVertices[j + 1]));*/
+    }
+
+    GLCall(glCreateBuffers(1, &planVertexbuffer));
+    GLCall(glNamedBufferStorage(planVertexbuffer, planeVertices.size() * sizeof(planeVertices[0]), &planeVertices[0], 0));
+
+    GLCall(glCreateBuffers(1, &planTexturebuffer));
+    GLCall(glNamedBufferStorage(planTexturebuffer, planVerticesTexture.size() * sizeof(planVerticesTexture[0]), &planVerticesTexture[0], 0));
+
 }
 
 
 static void CreateVertexArrayObject()
 {
 
-    /*create vertex array object*/
-
+    // create teapot vertex array object
+    // ---------------------------------
     GLCall(glCreateVertexArrays(1, &vao));
 
     pos = 0; // glGetAttribLocation(shader, "pos");
@@ -510,14 +594,45 @@ static void CreateVertexArrayObject()
     GLCall(glVertexArrayAttribBinding(vao, aTexCoord, textureBindingIndex));
     GLCall(glVertexArrayBindingDivisor(vao, textureBindingIndex, 0));
     GLCall(glEnableVertexArrayAttrib(vao, aTexCoord));
+
+    // create plan vertex array object
+    // -------------------------------
+    GLCall(glCreateVertexArrays(1, &planeVao));
+
+    //vertex buffer
+    GLCall(glVertexArrayVertexBuffer(planeVao, vertexBindingIndex, planVertexbuffer, 0, sizeof(glm::vec3))); //sizeof(tm.V(0)
+    GLCall(glVertexArrayAttribFormat(planeVao, pos, 3, GL_FLOAT, GL_FALSE, 0));                          //sizeof(tm.V(0)
+    GLCall(glVertexArrayAttribBinding(planeVao, pos, vertexBindingIndex));
+    GLCall(glVertexArrayBindingDivisor(planeVao, vertexBindingIndex, 0));
+    GLCall(glEnableVertexArrayAttrib(planeVao, pos));
+
+    //texture buffer
+    GLCall(glVertexArrayVertexBuffer(planeVao, textureBindingIndex, planTexturebuffer, 0, sizeof(glm::vec2))); //sizeof(tm.VN(0))
+    GLCall(glVertexArrayAttribFormat(planeVao, aTexCoord, 2, GL_FLOAT, GL_FALSE, 0));                      //sizeof(tm.VN(0))
+    GLCall(glVertexArrayAttribBinding(planeVao, aTexCoord, textureBindingIndex));
+    GLCall(glVertexArrayBindingDivisor(planeVao, textureBindingIndex, 0));
+    GLCall(glEnableVertexArrayAttrib(planeVao, aTexCoord));
 }
+
 
 static void CreateTexture() {
 
+    //generate diffuse texture
     GLCall(glGenTextures(1, &texture1));
     GLCall(glBindTexture(GL_TEXTURE_2D, texture1));
+    std::string file = "res/texture";
+    std::string diffusePic = tm.M(0).map_Kd.data;
+    //file += diffusePic;
+    ////char* buffer = new char[strlen(file) + strlen(tm.M(0).map_Kd.data) + 1 + 1];
+    //char* cstr = new char[file.length() + 1];
+    //strcpy_s(cstr, sizeof(cstr), file.c_str());
+    //image = decodeTwoSteps(cstr, image);
+    //assert(&image);
+    //delete[] cstr;
+    std::string str = "res/texture/" + diffusePic;
+    const char* fileLocation = str.c_str();
 
-    image = decodeTwoSteps("res/texture/brick.png", image);
+    image = decodeTwoSteps(fileLocation, image);//"res/texture/brick.png"
     assert(&image);
     GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]));
     GLCall(glGenerateMipmap(GL_TEXTURE_2D));
@@ -533,6 +648,7 @@ static void CreateTexture() {
     GLCall(glGenTextures(1, &spectexture));
     GLCall(glBindTexture(GL_TEXTURE_2D, spectexture));
 
+    //specular texture
     specimage = decodeTwoSteps("res/texture/brick.png", specimage);
     assert(&specimage);
     GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &specimage[0]));
@@ -545,6 +661,40 @@ static void CreateTexture() {
     // set the texture wrapping parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+}
+
+void Framebuffer() {
+
+    //Create frame buffers
+    GLCall(glGenFramebuffers(1, &framebuffer));
+    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, framebuffer));
+
+    //rendered texture
+    GLCall(glGenTextures(1, &renderedTexture));
+    GLCall(glBindTexture(GL_TEXTURE_2D, renderedTexture));  
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL));//do nothing, just ask gpu to allocate the space for us
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));//GL_NEAREST
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderedTexture, 0));//LEARN OPENGL
+
+    //Create depth buffer (rbo)
+    GLCall(glGenRenderbuffers(1, &depthbuffer));
+    GLCall(glBindRenderbuffer(GL_RENDERBUFFER, depthbuffer));
+    GLCall(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height));
+    GLCall(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthbuffer));//attach depth buffer to frame buffer
+    GLCall(glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0));//attach color 0 to frame buffer
+
+    GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+    GLCall(glDrawBuffers(1, drawBuffers));
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+    
+    bool frameBufferSuccess = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE ? true : false;
+    assert(frameBufferSuccess);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 }
 
 void drag2(int x, int y)
@@ -656,9 +806,12 @@ int main(int argc, char** argv)
 
     CreateVertexArrayObject();
 
+    Framebuffer();
+    
     CreateTexture();
 
     ShaderProgramSource source = ParseShader("res/shaders/Teapot.shader");
+
     shader = CreateShader(source.VertexSource, source.FragmentSource);
     assert(shader != -1);
 
@@ -666,6 +819,14 @@ int main(int argc, char** argv)
     lightPos = rotate * lightPosOrigin;
     glm::vec3 horRotate(1, sin(horDegree), cos(horDegree));
     lightPos = horRotate * lightPosOrigin;
+
+    source = ParseShader("res/shaders/Pkan.shader");
+
+    planShader = CreateShader(source.VertexSource, source.FragmentSource);
+    assert(planShader != -1);
+
+    //get origin frame buffer
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &originFB);
 
     glutDisplayFunc(myDisplay);
 

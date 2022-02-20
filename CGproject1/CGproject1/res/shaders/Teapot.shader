@@ -31,9 +31,13 @@ void main()
 layout(location = 0) out vec4 color;
 
 uniform vec3 lightPos;
-uniform vec3 lightColor;
+uniform vec3 ambientColor;
+uniform vec3 diffuseColor;
+uniform vec3 specularColor;
 uniform vec3 viewPos;
 uniform vec3 objectColor;
+uniform float specularExponent;
+uniform float specularStrength;
 uniform sampler2D tex;
 uniform sampler2D specTex;
 
@@ -45,23 +49,23 @@ void main()
 {
 	// ambient
 	float ambientStrength = 0.1;
-	vec3 ambient = ambientStrength * lightColor * texture(tex, TexCoord).rgb;
+	vec3 ambient = ambientColor * texture(tex, TexCoord).rgb;
 
 	// diffuse 
 	vec3 norm = normalize(Normal);
 	vec3 lightDir = normalize(lightPos - FragPos);
 	float diff = max(dot(norm, lightDir), 0.0);
-	vec3 diffuse = diff * lightColor * texture(tex, TexCoord).rgb;
+	vec3 diffuse = diff * diffuseColor * texture(tex, TexCoord).rgb;
 
 	// specular
-	float specularStrength = 5.0;//0.5
+	//float specularStrength = 5.0;//0.5
 	vec3 viewDir = normalize(viewPos - FragPos);
 	vec3 reflectDir = reflect(-lightDir, norm);
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-	vec3 specular = specularStrength * spec * lightColor * texture(specTex, TexCoord).rgb;
+	float spec = pow(max(dot(viewDir, reflectDir), 0.0), specularExponent); // pow(max(dot(viewDir, reflectDir), 0.0), 32);
+	vec3 specular = specularStrength * spec * specularColor * texture(specTex, TexCoord).rgb;
 
-	vec3 result = (ambient + diffuse + specular) * objectColor;
-	
+	vec3 result = (ambient + diffuse + specular);
+
 	//texture
 	color = vec4(result, 1.0);
 };
