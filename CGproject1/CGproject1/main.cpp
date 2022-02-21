@@ -665,34 +665,60 @@ static void CreateTexture() {
 
 void Framebuffer() {
 
-    //Create frame buffers
-    GLCall(glGenFramebuffers(1, &framebuffer));
-    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, framebuffer));
+    ////Create frame buffers
+    //GLCall(glGenFramebuffers(1, &framebuffer));
+    //GLCall(glBindFramebuffer(GL_FRAMEBUFFER, framebuffer));
 
-    //rendered texture
-    GLCall(glGenTextures(1, &renderedTexture));
-    GLCall(glBindTexture(GL_TEXTURE_2D, renderedTexture));  
-    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL));//do nothing, just ask gpu to allocate the space for us
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));//GL_NEAREST
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-    GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderedTexture, 0));//LEARN OPENGL
+    ////rendered texture
+    //GLCall(glGenTextures(1, &renderedTexture));
+    //GLCall(glBindTexture(GL_TEXTURE_2D, renderedTexture));  
+    //GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL));//do nothing, just ask gpu to allocate the space for us
+    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));//GL_NEAREST
+    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    //GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderedTexture, 0));//LEARN OPENGL
 
-    //Create depth buffer (rbo)
-    GLCall(glGenRenderbuffers(1, &depthbuffer));
-    GLCall(glBindRenderbuffer(GL_RENDERBUFFER, depthbuffer));
-    GLCall(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height));
-    GLCall(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthbuffer));//attach depth buffer to frame buffer
-    GLCall(glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0));//attach color 0 to frame buffer
+    ////Create depth buffer (rbo)
+    //GLCall(glGenRenderbuffers(1, &depthbuffer));
+    //GLCall(glBindRenderbuffer(GL_RENDERBUFFER, depthbuffer));
+    //GLCall(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height));
+    //GLCall(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthbuffer));//attach depth buffer to frame buffer
+    ////GLCall(glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0));//attach color 0 to frame buffer
 
-    GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
-    GLCall(glDrawBuffers(1, drawBuffers));
+    //GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+    //GLCall(glDrawBuffers(1, drawBuffers));
 
+    //GLenum n = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    //std::cout << n << std::endl;
+
+    //if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    //    std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+    //
+    //bool frameBufferSuccess = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE ? true : false;
+    //assert(frameBufferSuccess);
+
+    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    // create a color attachment texture
+    //unsigned int textureColorbuffer;
+    glGenTextures(1, &renderedTexture);
+    glBindTexture(GL_TEXTURE_2D, renderedTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderedTexture, 0);
+    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+    unsigned int rbo;
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT); // use a single renderbuffer object for both a depth AND stencil buffer.
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
+    // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-    
-    bool frameBufferSuccess = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE ? true : false;
-    assert(frameBufferSuccess);
 
+    assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 }
