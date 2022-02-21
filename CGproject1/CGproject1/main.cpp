@@ -47,21 +47,11 @@ GLuint texture1;
 GLuint spectexture;
 GLuint renderedTexture; 
 GLint originFB;
-//int width = 1920, height = 1080;
-/*
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 60.0f); //glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
-glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
-glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
-glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
-
-glm::mat4 transformOrigin = glm::mat4(1.0f);*/
-//glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
 glm::mat4 transform = glm::mat4(1.0f);
 glm::mat4 rotation = glm::mat4(1.0f);
+glm::mat4 planetransform = glm::mat4(1.0f);
+glm::mat4 planerotation = glm::mat4(1.0f);
 
 bool leftMouseButtonDown = false;
 bool rightMouseButtonDown = false;
@@ -71,6 +61,7 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // camera
+Camera cameraPlane(glm::vec3(0.0f, 0.0f, 60.0f));
 Camera camera(glm::vec3(0.0f, 0.0f, 60.0f));
 //float lastX = SCR_WIDTH / 2.0f;
 //float lastY = SCR_HEIGHT / 2.0f;
@@ -114,7 +105,6 @@ std::vector<unsigned char> specimage; //the raw pixels
 unsigned width, height;
 
 std::string objName;    
-unsigned int planeVAO, planeVBO;
 
 static void GLClearError()
 {
@@ -284,10 +274,9 @@ void myDisplay()
     
     GLCall(glUseProgram(shader));
 
-    /*MVP into vertex shader*/
-    glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
-    glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
+    glm::mat4 planeview = cameraPlane.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
+    glm::mat4 planeprojection = glm::perspective(glm::radians(cameraPlane.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+    glm::mat4 planemodel = planerotation * glm::mat4(1.0f); //translation*rotation*scale
 
     GLCall(GLuint location = glGetUniformLocation(shader, "ambientColor"));
     assert(location != -1);
@@ -321,15 +310,15 @@ void myDisplay()
     //MVP
     GLCall(GLuint modelId = glGetUniformLocation(shader, "model"));
     assert(modelId != -1);
-    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &planemodel[0][0]));
 
     GLCall(GLuint viewId = glGetUniformLocation(shader, "view"));
     assert(viewId != -1);
-    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
+    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &planeview[0][0]));
 
     GLCall(GLuint proId = glGetUniformLocation(shader, "projection"));
     assert(proId != -1);
-    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
+    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &planeprojection[0][0]));
 
 
     //texture
@@ -366,6 +355,10 @@ void myDisplay()
     GLCall(glUseProgram(planShader));
     GLCall(glBindVertexArray(planeVao));
 
+    /*MVP into vertex shader*/
+    glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+    glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
     //MVP
     GLCall(modelId = glGetUniformLocation(planShader, "model"));
     assert(modelId != -1);
@@ -381,7 +374,7 @@ void myDisplay()
 
     GLCall(location = glGetUniformLocation(planShader, "planeColor"));
     assert(location != -1);
-    GLCall(glUniform3f(location, 0.0f, 0.0f, 20.0f));//1.0f, 0.5f, 0.31f
+    GLCall(glUniform3f(location, 0.0f, 0.0f, 1.0f));//1.0f, 0.5f, 0.31f
 
     //texture
     GLCall(location = glGetUniformLocation(planShader, "teapotTexture"));
@@ -398,41 +391,6 @@ void myDisplay()
     glutSwapBuffers();
 
 }
-
-void myDisplay2() {
-
-    GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-    //glDrawArrays();   
-
-    GLCall(glUseProgram(planShader));
-
-
-    glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
-    glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
-    // floor
-    glBindVertexArray(planeVAO);
-    glBindTexture(GL_TEXTURE_2D, spectexture);
-    
-    // MVP
-    GLCall(GLuint modelId = glGetUniformLocation(planShader, "model"));
-    assert(modelId != -1);
-    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
-
-    GLCall(GLuint viewId = glGetUniformLocation(planShader, "view"));
-    assert(viewId != -1);
-    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
-
-    GLCall(GLuint proId = glGetUniformLocation(planShader, "projection"));
-    assert(proId != -1);
-    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
-
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    //glBindVertexArray(0);
-    glutSwapBuffers();
-
-}
-
 float red = 0.0f;
 
 void myIdle()
@@ -553,19 +511,6 @@ static void CreateVertexBuffer()
     GLCall(glCreateBuffers(1, &texturebuffer));
     GLCall(glNamedBufferStorage(texturebuffer, verticesTexture.size() * sizeof(verticesTexture[0]), &verticesTexture[0], 0));
 
-
-    // plane vertex
-    // ------------
-    //float allplaneVertices[] = {
-    //    // positions          // texture coords 
-    //     20.0f, -0.5f,  20.0f,  1.0f, 0.0f,
-    //    -20.0f, -0.5f,  20.0f,  0.0f, 0.0f,
-    //    -20.0f, -0.5f, -20.0f,  0.0f, 1.0f,
-
-    //     20.0f, -0.5f,  20.0f,  1.0f, 0.0f,
-    //    -20.0f, -0.5f, -20.0f,  0.0f, 1.0f,
-    //     20.0f, -0.5f, -20.0f,  1.0f, 1.0f
-    //};
     float allplaneVertices[] = {
         // positions          // texture coords 
          5.0f, -0.5f,  5.0f,  1.0f, 0.0f,
@@ -642,27 +587,6 @@ static void CreateVertexArrayObject()
     GLCall(glVertexArrayBindingDivisor(planeVao, textureBindingIndex, 0));
     GLCall(glEnableVertexArrayAttrib(planeVao, aTexCoord));
 
-    //float planeVertices[] = {
-    //    // positions          // texture Coords 
-    //     5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-    //    -5.0f, -0.5f,  5.0f,  0.0f, 0.0f,
-    //    -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
-
-    //     5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-    //    -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
-    //     5.0f, -0.5f, -5.0f,  2.0f, 2.0f
-    //};
-    //// plane VAO
-
-    //glGenVertexArrays(1, &planeVAO);
-    //glGenBuffers(1, &planeVBO);
-    //glBindVertexArray(planeVAO);
-    //glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), &planeVertices, GL_STATIC_DRAW);
-    //glEnableVertexAttribArray(0);
-    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    //glEnableVertexAttribArray(1);
-    //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 }
 
 
@@ -715,39 +639,6 @@ static void CreateTexture() {
 }
 
 void Framebuffer() {
-
-    ////Create frame buffers
-    //GLCall(glGenFramebuffers(1, &framebuffer));
-    //GLCall(glBindFramebuffer(GL_FRAMEBUFFER, framebuffer));
-
-    ////rendered texture
-    //GLCall(glGenTextures(1, &renderedTexture));
-    //GLCall(glBindTexture(GL_TEXTURE_2D, renderedTexture));  
-    //GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL));//do nothing, just ask gpu to allocate the space for us
-    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));//GL_NEAREST
-    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-    //GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderedTexture, 0));//LEARN OPENGL
-
-    ////Create depth buffer (rbo)
-    //GLCall(glGenRenderbuffers(1, &depthbuffer));
-    //GLCall(glBindRenderbuffer(GL_RENDERBUFFER, depthbuffer));
-    //GLCall(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height));
-    //GLCall(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthbuffer));//attach depth buffer to frame buffer
-    ////GLCall(glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0));//attach color 0 to frame buffer
-
-    //GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
-    //GLCall(glDrawBuffers(1, drawBuffers));
-
-    //GLenum n = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    //std::cout << n << std::endl;
-
-    //if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-    //    std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-    //
-    //bool frameBufferSuccess = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE ? true : false;
-    //assert(frameBufferSuccess);
-
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     glGenFramebuffers(1, &framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -805,9 +696,17 @@ void drag2(int x, int y)
         yoffset *= sensitivity;
 
         zoom = xoffset + yoffset;
-        //transform = glm::translate(transform, glm::vec3(xoffset, yoffset, 0.0f));
-        transform = glm::translate(transform, glm::vec3(0.0f, 0.0f, zoom));
-        camera.ProcessMouseScroll(static_cast<float>(zoom));
+
+        int mods = glutGetModifiers();
+        if (mods & GLUT_ACTIVE_ALT) {
+            transform = glm::translate(transform, glm::vec3(0.0f, 0.0f, zoom));
+            camera.ProcessMouseScroll(static_cast<float>(zoom));
+        }
+        else {
+            planetransform = glm::translate(planetransform, glm::vec3(0.0f, 0.0f, zoom));
+            cameraPlane.ProcessMouseScroll(static_cast<float>(zoom));
+        }
+
     }
     if (leftMouseButtonDown)
     {
@@ -831,8 +730,6 @@ void drag2(int x, int y)
         xoffset *= sensitivity;
         yoffset *= sensitivity;
 
-        
-
         //camera.ProcessMouseMovement(xoffset, yoffset);
 
         int mods = glutGetModifiers();
@@ -848,6 +745,12 @@ void drag2(int x, int y)
         }
         else {
 
+            planerotation = glm::rotate(planerotation, glm::radians(xoffset), glm::vec3(0.0f, 1.0f, 0.0f));
+            planerotation = glm::rotate(planerotation, glm::radians(-yoffset), glm::vec3(1.0f, 0.0f, 1.0f));
+        }
+
+        mods = glutGetModifiers();
+        if (mods & GLUT_ACTIVE_ALT) {
             rotation = glm::rotate(rotation, glm::radians(xoffset), glm::vec3(0.0f, 1.0f, 0.0f));
             rotation = glm::rotate(rotation, glm::radians(-yoffset), glm::vec3(1.0f, 0.0f, 1.0f));
         }
