@@ -1329,6 +1329,6 @@
     </None>
     <None Include="shader.vert" />
     <None Include="shader.frag" />
-    <None Include="res\shaders\Plan.shader" />
+    <None Include="res\shaders\Plane.shader" />
   </ItemGroup>
 </Project>

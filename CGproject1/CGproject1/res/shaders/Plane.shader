@@ -2,6 +2,7 @@
 #version 330 core
 
 layout(location = 0) in vec3 pos;
+layout(location = 1) in vec3 aNormal;
 layout(location = 2) in vec2 aTexCoord;
 
 uniform mat4 model;
@@ -21,14 +22,13 @@ void main()
 
 layout(location = 0) out vec4 color;
 
-uniform vec3 planColor;
-
 in vec2 TexCoord;
 
-uniform sampler2D screenTexture;
+uniform sampler2D teapotTexture;
+uniform vec3 planColor;
 
 void main()
 {
-	vec3 col = planColor * texture(screenTexture, TexCoord).rgb;
+	vec3 col = texture(teapotTexture, TexCoord).rgb;
 	color = vec4(col, 1.0);
 };
