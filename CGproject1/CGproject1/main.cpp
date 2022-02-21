@@ -279,7 +279,7 @@ void myDisplay()
 
     //Set frame buffer target & render
     GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer));
-    GLCall(glViewport(0, 0, width, height));
+    GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
     GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
     //glDrawArrays();   
     
@@ -388,12 +388,22 @@ void myDisplay()
     GLCall(glGenerateTextureMipmap(renderedTexture));
     //Set frame buffer target to the back buffer
     GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, originFB));
-    GLCall(glViewport(0, 0, width, height));
+    GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
     glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    GLCall(glUseProgram(shader));
+    GLCall(glUseProgram(planShader));
     GLCall(glBindVertexArray(planeVao));
-    GLCall(glBindTexture(GL_TEXTURE_2D, renderedTexture));
+
+    //texture
+    GLCall(location = glGetUniformLocation(planShader, "screenTexture"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 2));
+
+    // bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, renderedTexture);
+
+    //GLCall(glBindTexture(GL_TEXTURE_2D, renderedTexture));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
     glutSwapBuffers();
@@ -525,13 +535,13 @@ static void CreateVertexBuffer()
     // ------------
     float allplaneVertices[] = {
         // positions          // texture Coords 
-         5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-        -5.0f, -0.5f,  5.0f,  0.0f, 0.0f,
-        -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+         20.0f, -0.5f,  20.0f,  2.0f, 0.0f,
+        -20.0f, -0.5f,  20.0f,  0.0f, 0.0f,
+        -20.0f, -0.5f, -20.0f,  0.0f, 2.0f,
 
-         5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-        -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
-         5.0f, -0.5f, -5.0f,  2.0f, 2.0f
+         20.0f, -0.5f,  20.0f,  2.0f, 0.0f,
+        -20.0f, -0.5f, -20.0f,  0.0f, 2.0f,
+         20.0f, -0.5f, -20.0f,  2.0f, 2.0f
     };
 
     for (unsigned int i = 0; i < 30; i = i+5)
@@ -846,7 +856,7 @@ int main(int argc, char** argv)
     glm::vec3 horRotate(1, sin(horDegree), cos(horDegree));
     lightPos = horRotate * lightPosOrigin;
 
-    source = ParseShader("res/shaders/Pkan.shader");
+    source = ParseShader("res/shaders/Plan.shader");
 
     planShader = CreateShader(source.VertexSource, source.FragmentSource);
     assert(planShader != -1);
