@@ -394,6 +394,23 @@ void myDisplay()
     GLCall(glUseProgram(planShader));
     GLCall(glBindVertexArray(planeVao));
 
+    //MVP
+    GLCall(modelId = glGetUniformLocation(planShader, "model"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
+
+    GLCall(viewId = glGetUniformLocation(planShader, "view"));
+    assert(viewId != -1);
+    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
+
+    GLCall(proId = glGetUniformLocation(planShader, "projection"));
+    assert(proId != -1);
+    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
+
+    GLCall(location = glGetUniformLocation(planShader, "planColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, 1.0f, 0.5f, 0.31f));//1.0f, 0.5f, 0.31f
+
     //texture
     GLCall(location = glGetUniformLocation(planShader, "screenTexture"));
     assert(location != -1);
@@ -610,15 +627,15 @@ static void CreateVertexArrayObject()
     GLCall(glCreateVertexArrays(1, &planeVao));
 
     //vertex buffer
-    GLCall(glVertexArrayVertexBuffer(planeVao, vertexBindingIndex, planVertexbuffer, 0, sizeof(glm::vec3))); //sizeof(tm.V(0)
-    GLCall(glVertexArrayAttribFormat(planeVao, pos, 3, GL_FLOAT, GL_FALSE, 0));                          //sizeof(tm.V(0)
+    GLCall(glVertexArrayVertexBuffer(planeVao, vertexBindingIndex, planVertexbuffer, 0, sizeof(glm::vec3))); 
+    GLCall(glVertexArrayAttribFormat(planeVao, pos, 3, GL_FLOAT, GL_FALSE, 0));                          
     GLCall(glVertexArrayAttribBinding(planeVao, pos, vertexBindingIndex));
     GLCall(glVertexArrayBindingDivisor(planeVao, vertexBindingIndex, 0));
     GLCall(glEnableVertexArrayAttrib(planeVao, pos));
 
     //texture buffer
-    GLCall(glVertexArrayVertexBuffer(planeVao, textureBindingIndex, planTexturebuffer, 0, sizeof(glm::vec2))); //sizeof(tm.VN(0))
-    GLCall(glVertexArrayAttribFormat(planeVao, aTexCoord, 2, GL_FLOAT, GL_FALSE, 0));                      //sizeof(tm.VN(0))
+    GLCall(glVertexArrayVertexBuffer(planeVao, textureBindingIndex, planTexturebuffer, 0, sizeof(glm::vec2))); 
+    GLCall(glVertexArrayAttribFormat(planeVao, aTexCoord, 2, GL_FLOAT, GL_FALSE, 0));                   
     GLCall(glVertexArrayAttribBinding(planeVao, aTexCoord, textureBindingIndex));
     GLCall(glVertexArrayBindingDivisor(planeVao, textureBindingIndex, 0));
     GLCall(glEnableVertexArrayAttrib(planeVao, aTexCoord));
