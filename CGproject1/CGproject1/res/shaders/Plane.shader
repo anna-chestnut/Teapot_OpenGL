@@ -22,13 +22,13 @@ void main()
 
 layout(location = 0) out vec4 color;
 
-in vec2 TexCoord;
+in vec2 TexCoords;
 
 uniform sampler2D teapotTexture;
-uniform vec3 planColor;
+uniform vec3 planeColor;
 
 void main()
 {
-	vec3 col = texture(teapotTexture, TexCoord).rgb;
+	vec3 col = planeColor + texture(teapotTexture, TexCoords).rgb;
 	color = vec4(col, 1.0);
 };

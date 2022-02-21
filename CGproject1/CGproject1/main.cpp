@@ -113,7 +113,8 @@ std::vector<unsigned char> image; //the raw pixels
 std::vector<unsigned char> specimage; //the raw pixels
 unsigned width, height;
 
-std::string objName;
+std::string objName;    
+unsigned int planeVAO, planeVBO;
 
 static void GLClearError()
 {
@@ -276,48 +277,17 @@ void ReCompileShader()
 void myDisplay()
 {
     
-
     //Set frame buffer target & render
     GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer));
     GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
     GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-    //glDrawArrays();   
     
     GLCall(glUseProgram(shader));
-
-
-    /*rendering*/
 
     /*MVP into vertex shader*/
     glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
     glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
-    //glm::mat4 mvp = projection * transform * view * rotation * model;
-    /*
-    GLCall(GLuint mvpId = glGetUniformLocation(shader, "MVP"));
-    assert(mvpId != -1);
-    GLCall(glUniformMatrix4fv(mvpId, 1, GL_FALSE, &mvp[0][0]));
-    */
-    /*
-    glm::mat4 mv = transform * view * rotation * model;
-    glm::mat3 mat3_mv = {
-
-        mv[0][0], mv[0][1], mv[0][2],
-        mv[1][0], mv[1][1], mv[1][2],
-        mv[2][0], mv[2][1], mv[2][2] 
-    };*/
-    /*
-    glm::mat3 inverse(glm::mat3 mat3_mv);
-    glm::mat3 transpose(glm::mat3 mat3_mv);
-    GLCall(GLuint mvId = glGetUniformLocation(shader, "MV"));
-    assert(mvId != -1);
-    GLCall(glUniformMatrix3fv(mvId, 1, GL_FALSE, &mat3_mv[0][0]));
-    */
-    
-    ////setting light pos & color
-    //GLCall(GLuint location = glGetUniformLocation(shader, "objectColor"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, 1.0f, 0.0f, 0.0f));//1.0f, 0.5f, 0.31f
 
     GLCall(GLuint location = glGetUniformLocation(shader, "ambientColor"));
     assert(location != -1);
@@ -382,6 +352,7 @@ void myDisplay()
 
     GLCall(glBindVertexArray(vao));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
+    glBindVertexArray(0);
 
     // bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
     // ---------------------------------
@@ -408,9 +379,9 @@ void myDisplay()
     assert(proId != -1);
     GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
-    //GLCall(location = glGetUniformLocation(planShader, "planColor"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, 0.0f, 0.0f, 0.0f));//1.0f, 0.5f, 0.31f
+    GLCall(location = glGetUniformLocation(planShader, "planeColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, 0.0f, 0.0f, 20.0f));//1.0f, 0.5f, 0.31f
 
     //texture
     GLCall(location = glGetUniformLocation(planShader, "teapotTexture"));
@@ -419,11 +390,45 @@ void myDisplay()
 
     // bind textures on corresponding texture units
     glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, texture1);
+    glBindTexture(GL_TEXTURE_2D, renderedTexture);
 
     //GLCall(glBindTexture(GL_TEXTURE_2D, renderedTexture));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
+    glutSwapBuffers();
+
+}
+
+void myDisplay2() {
+
+    GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+    //glDrawArrays();   
+
+    GLCall(glUseProgram(planShader));
+
+
+    glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+    glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
+    // floor
+    glBindVertexArray(planeVAO);
+    glBindTexture(GL_TEXTURE_2D, spectexture);
+    
+    // MVP
+    GLCall(GLuint modelId = glGetUniformLocation(planShader, "model"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
+
+    GLCall(GLuint viewId = glGetUniformLocation(planShader, "view"));
+    assert(viewId != -1);
+    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
+
+    GLCall(GLuint proId = glGetUniformLocation(planShader, "projection"));
+    assert(proId != -1);
+    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    //glBindVertexArray(0);
     glutSwapBuffers();
 
 }
@@ -574,22 +579,8 @@ static void CreateVertexBuffer()
 
     for (unsigned int i = 0; i < 30; i = i+5)
     {
-        //unsigned int j = i;
         planeVertices.push_back(glm::vec3(allplaneVertices[i], allplaneVertices[i+1], allplaneVertices[i+2]));
-        /*j += 5;
-        planeVertices.push_back(glm::vec3(allplaneVertices[j], allplaneVertices[j + 1], allplaneVertices[j + 2]));
-        j += 5;
-        planeVertices.push_back(glm::vec3(allplaneVertices[j], allplaneVertices[j + 1], allplaneVertices[j + 2]));*/
-    }
-
-    for (unsigned int i = 0; i < 30; i = i + 5)
-    {
-        //unsigned int j = i + 3;
-        planVerticesTexture.push_back(glm::vec2(allplaneVertices[i], allplaneVertices[i + 1]));
-        /*j += 5;
-        planVerticesTexture.push_back(glm::vec2(allplaneVertices[j], allplaneVertices[j + 1]));
-        j += 5;
-        planVerticesTexture.push_back(glm::vec2(allplaneVertices[j], allplaneVertices[j + 1]));*/
+        planVerticesTexture.push_back(glm::vec2(allplaneVertices[i+3], allplaneVertices[i +4]));
     }
 
     GLCall(glCreateBuffers(1, &planVertexbuffer));
@@ -650,6 +641,28 @@ static void CreateVertexArrayObject()
     GLCall(glVertexArrayAttribBinding(planeVao, aTexCoord, textureBindingIndex));
     GLCall(glVertexArrayBindingDivisor(planeVao, textureBindingIndex, 0));
     GLCall(glEnableVertexArrayAttrib(planeVao, aTexCoord));
+
+    //float planeVertices[] = {
+    //    // positions          // texture Coords 
+    //     5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
+    //    -5.0f, -0.5f,  5.0f,  0.0f, 0.0f,
+    //    -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+
+    //     5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
+    //    -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+    //     5.0f, -0.5f, -5.0f,  2.0f, 2.0f
+    //};
+    //// plane VAO
+
+    //glGenVertexArrays(1, &planeVAO);
+    //glGenBuffers(1, &planeVBO);
+    //glBindVertexArray(planeVAO);
+    //glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), &planeVertices, GL_STATIC_DRAW);
+    //glEnableVertexAttribArray(0);
+    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    //glEnableVertexAttribArray(1);
+    //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 }
 
 
