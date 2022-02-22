@@ -26,9 +26,13 @@ in vec2 TexCoords;
 
 uniform sampler2D teapotTexture;
 uniform vec3 planeColor;
+uniform vec3 clearColor = vec3(0, 0, 0);
 
 void main()
 {
-	vec3 col = planeColor + texture(teapotTexture, TexCoords).rgb;
+	vec3 col = texture(teapotTexture, TexCoords).rgb;
+	if (col == clearColor) {
+		col = planeColor;
+	}
 	color = vec4(col, 1.0);
 };

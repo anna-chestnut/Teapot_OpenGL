@@ -374,7 +374,7 @@ void myDisplay()
 
     GLCall(location = glGetUniformLocation(planShader, "planeColor"));
     assert(location != -1);
-    GLCall(glUniform3f(location, 0.0f, 0.0f, 1.0f));//1.0f, 0.5f, 0.31f
+    GLCall(glUniform3f(location, 0.5f, 0.5f, 0.5f));//1.0f, 0.5f, 0.31f
 
     //texture
     GLCall(location = glGetUniformLocation(planShader, "teapotTexture"));
@@ -597,13 +597,7 @@ static void CreateTexture() {
     GLCall(glBindTexture(GL_TEXTURE_2D, texture1));
     std::string file = "res/texture";
     std::string diffusePic = tm.M(0).map_Kd.data;
-    //file += diffusePic;
-    ////char* buffer = new char[strlen(file) + strlen(tm.M(0).map_Kd.data) + 1 + 1];
-    //char* cstr = new char[file.length() + 1];
-    //strcpy_s(cstr, sizeof(cstr), file.c_str());
-    //image = decodeTwoSteps(cstr, image);
-    //assert(&image);
-    //delete[] cstr;
+    
     std::string str = "res/texture/" + diffusePic;
     const char* fileLocation = str.c_str();
 
