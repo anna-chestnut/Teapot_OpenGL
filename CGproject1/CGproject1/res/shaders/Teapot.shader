@@ -31,7 +31,7 @@ void main()
 layout(location = 0) out vec4 color;
 
 uniform vec3 lightPos;
-uniform vec3 ambientColor; 
+uniform vec3 ambientColor;
 uniform vec3 diffuseColor;
 uniform vec3 specularColor;
 uniform vec3 viewPos;
@@ -65,7 +65,7 @@ void main()
 	vec3 specular = specularStrength * spec * specularColor * texture(specTex, TexCoord).rgb;
 
 	vec3 result = (ambient + diffuse + specular);
-	
+
 	//texture
 	color = vec4(result, 1.0);
 };

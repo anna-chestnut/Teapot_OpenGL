@@ -456,6 +456,7 @@
     <ClInclude Include="res\vendor\glm\vector_relational.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="res\shaders\Plane.shader" />
     <None Include="shader.frag" />
     <None Include="shader.vert" />
     <None Include="res\shaders\Teapot.shader" />
