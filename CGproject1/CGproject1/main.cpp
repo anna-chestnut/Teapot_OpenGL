@@ -106,46 +106,6 @@ unsigned width, height;
 
 std::string objName;    
 
-static void GLClearError()
-{
-
-    while (glGetError() != GL_NO_ERROR)
-        ;
-}
-
-static bool GLLogCall(const char* function, const char* file, int line)
-{
-
-    while (GLenum error = glGetError())
-    {
-        std::cout << "[OpenGL Error] (" << error << ")" << function << " " << file << ":" << line << std::endl;
-        return false;
-    }
-
-    return true;
-}
-
-std::vector<unsigned char> decodeTwoSteps(const char* filename, std::vector<unsigned char> decodeImage) {
-    std::vector<unsigned char> png;
-    
-    //load and decode
-    unsigned error = lodepng::load_file(png, filename);
-    if (!error) error = lodepng::decode(decodeImage, width, height, png);
-
-    //if there's an error, display it
-    if (error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-
-    return decodeImage;
-
-    //the pixels are now in the vector "image", 4 bytes per pixel, ordered RGBARGBA..., use it as texture, draw it, ...
-}
-
-
-char* ReadFromFile(const std::string& fileName)
-{
-    return nullptr;
-}
-
 struct ShaderProgramSource
 {
 
@@ -153,116 +113,20 @@ struct ShaderProgramSource
     std::string FragmentSource;
 };
 
-static ShaderProgramSource ParseShader(const std::string& filepath)
-{
+static void GLClearError();
+static bool GLLogCall(const char* function, const char* file, int line);
+std::vector<unsigned char> decodeTwoSteps(const char* filename, std::vector<unsigned char> decodeImage);
+char* ReadFromFile(const std::string & fileName);
+static ShaderProgramSource ParseShader(const std::string & filepath);
+static unsigned int CompileShader(unsigned int type, const std::string& source);
+static unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader);
+void ReCompileShader();
+void myIdle();
+void myKeyboard(unsigned char key, int x, int y);
+void myMouse(int button, int state, int x, int y);
+void mySpecialKeyboard(int key, int x, int y);
+void drag2(int x, int y);
 
-    std::ifstream stream(filepath);
-
-    enum class ShaderType
-    {
-        NONE = -1,
-        VERTEX = 0,
-        FRAGMENT = 1
-    };
-
-    std::string line;
-    std::stringstream ss[2];
-    ShaderType type = ShaderType::NONE;
-    while (getline(stream, line))
-    {
-
-        if (line.find("#shader") != std::string::npos)
-        {
-
-            if (line.find("vertex") != std::string::npos)
-                type = ShaderType::VERTEX;
-            else if (line.find("fragment") != std::string::npos)
-                type = ShaderType::FRAGMENT;
-        }
-        else
-        {
-
-            ss[(int)type] << line << '\n';
-        }
-    }
-
-    return { ss[0].str(), ss[1].str() };
-}
-
-static unsigned int CompileShader(unsigned int type, const std::string& source)
-{
-
-    unsigned int id = glCreateShader(type);
-    const char* src = source.c_str();
-    glShaderSource(id, 1, &src, nullptr);
-    glCompileShader(id);
-
-    int result;
-    glGetShaderiv(id, GL_COMPILE_STATUS, &result);
-    if (result == GL_FALSE)
-    {
-        int length;
-        glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
-        char* message = (char*)alloca(length * sizeof(char));
-        glGetShaderInfoLog(id, length, &length, message);
-        std::cout << "Failed to compile" << (type == GL_VERTEX_SHADER ? "verttex" : "fragment")
-            << " shader!" << std::endl;
-        std::cout << message << std::endl;
-        glDeleteShader(id);
-        return 0;
-    }
-
-    return id;
-}
-
-static unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader)
-{
-
-    unsigned int program = glCreateProgram();
-    unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
-    unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
-
-    glAttachShader(program, vs);
-    glAttachShader(program, fs);
-    glLinkProgram(program);
-    glValidateProgram(program);
-
-    glDeleteShader(vs);
-    glDeleteShader(fs);
-
-    return program;
-}
-
-void ReCompileShader()
-{
-
-    std::cout << "Recompile shader" << std::endl;
-
-    GLsizei maxCount = 2;
-    GLsizei count;
-    GLuint shaders[2];
-
-    glGetAttachedShaders(shader, maxCount,
-        &count,
-        shaders);
-
-    for (unsigned int i = 0; i < maxCount; i++)
-    {
-        glDetachShader(shader, shaders[i]);
-    }
-
-    ShaderProgramSource source = ParseShader("res/shaders/Teapot.shader");
-    unsigned int vs = CompileShader(GL_VERTEX_SHADER, source.VertexSource);
-    unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, source.FragmentSource);
-
-    glAttachShader(shader, vs);
-    glAttachShader(shader, fs);
-    glLinkProgram(shader);
-    glValidateProgram(shader);
-
-    glDeleteShader(vs);
-    glDeleteShader(fs);
-}
 
 void myDisplay()
 {
@@ -391,65 +255,7 @@ void myDisplay()
     glutSwapBuffers();
 
 }
-float red = 0.0f;
 
-void myIdle()
-{
-
-    glClearColor(red, 0, 0, 0);
-    red += 0.02;
-    if (red >= 2)
-        red = 0;
-
-    glutPostRedisplay();
-}
-
-void myKeyboard(unsigned char key, int x, int y)
-{
-
-    switch (key)
-    {
-    case 27: //ESC keycode
-        glutDestroyWindow(glutGetWindow());
-        break;
-   
-    }
-}
-
-void mySpecialKeyboard(int key, int x, int y)
-{
-
-    switch (key)
-    {
-    case GLUT_KEY_F6: //F6 keycode
-        ReCompileShader();
-        break;
-    }
-}
-
-void myMouse(int button, int state, int x, int y)
-{
-
-    // Save the left button state
-    if (button == GLUT_LEFT_BUTTON)
-    {
-        leftMouseButtonDown = (state == GLUT_DOWN);
-        if (!leftMouseButtonDown)
-        {
-            firstLeftMouse = true;
-        }
-    }
-
-    if (button == GLUT_RIGHT_BUTTON)
-    {
-        // \/ right MouseButton
-        rightMouseButtonDown = (state == GLUT_DOWN);
-        if (!rightMouseButtonDown)
-        {
-            firstRightMouse = true;
-        }
-    }
-}
 
 static void CreateVertexBuffer()
 {
@@ -466,32 +272,20 @@ static void CreateVertexBuffer()
 
     for (unsigned int i = 0; i < tm.NF(); i++)
     {
-        unsigned int tmp = i;
+        //vetices
         cy::TriMesh::TriFace face = tm.F(i);
-
         vertices.push_back(glm::vec3(tm.V(face.v[0]).x, tm.V(face.v[0]).y, tm.V(face.v[0]).z));
         vertices.push_back(glm::vec3(tm.V(face.v[1]).x, tm.V(face.v[1]).y, tm.V(face.v[1]).z));
         vertices.push_back(glm::vec3(tm.V(face.v[2]).x, tm.V(face.v[2]).y, tm.V(face.v[2]).z));
-    }
 
-
-    for (unsigned int i = 0; i < tm.NF(); i++)
-    {
-
-        unsigned int tmp = i;
-        cy::TriMesh::TriFace face = tm.FN(i);
-
+        //normal vertices
+        face = tm.FN(i);
         verticesNormal.push_back(glm::vec3(tm.VN(face.v[0]).x, tm.VN(face.v[0]).y, tm.VN(face.v[0]).z));
         verticesNormal.push_back(glm::vec3(tm.VN(face.v[1]).x, tm.VN(face.v[1]).y, tm.VN(face.v[1]).z));
         verticesNormal.push_back(glm::vec3(tm.VN(face.v[2]).x, tm.VN(face.v[2]).y, tm.VN(face.v[2]).z));
-    }
 
-    for (unsigned int i = 0; i < tm.NF(); i++)
-    {
-
-        unsigned int tmp = i;
-        cy::TriMesh::TriFace face = tm.FT(i);
-
+        //texture vertices
+        face = tm.FT(i);
         verticesTexture.push_back(glm::vec3(tm.VT(face.v[0]).x, tm.VT(face.v[0]).y, tm.VT(face.v[0]).z));
         verticesTexture.push_back(glm::vec3(tm.VT(face.v[1]).x, tm.VT(face.v[1]).y, tm.VT(face.v[1]).z));
         verticesTexture.push_back(glm::vec3(tm.VT(face.v[2]).x, tm.VT(face.v[2]).y, tm.VT(face.v[2]).z));
@@ -499,15 +293,15 @@ static void CreateVertexBuffer()
 
     numberOfV = vertices.size();
     
-    /* vertex buffer*/
+    //vertex buffer
     GLCall(glCreateBuffers(1, &vertexbuffer)); //in this case only create 1 buffer
     GLCall(glNamedBufferStorage(vertexbuffer, vertices.size() * sizeof(vertices[0]), &vertices[0], 0));
 
-    /* normal buffer */
+    //normal buffer
     GLCall(glCreateBuffers(1, &normalbuffer));
     GLCall(glNamedBufferStorage(normalbuffer, verticesNormal.size() * sizeof(verticesNormal[0]), &verticesNormal[0], 0));
 
-    /* texture coordinate buffer */
+    //
     GLCall(glCreateBuffers(1, &texturebuffer));
     GLCall(glNamedBufferStorage(texturebuffer, verticesTexture.size() * sizeof(verticesTexture[0]), &verticesTexture[0], 0));
 
@@ -663,6 +457,286 @@ void Framebuffer() {
 
 }
 
+
+int main(int argc, char** argv)
+{
+    
+    /*for (int i = 0; i < argc; ++i)
+        std::cout << argv[i] << "\n";
+
+    objName = argv[1];*/
+
+    glutInit(&argc, argv);
+    glutInitContextFlags(GLUT_DEBUG);
+    glutInitWindowSize(SCR_WIDTH, SCR_HEIGHT);
+    glutInitWindowPosition(100, 100);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
+    glutCreateWindow("Window Title");
+
+    //CY_GL_REGISTER_DEBUG_CALLBACK;
+    glEnable(GL_DEPTH_TEST);
+
+    //Must be done after glut is initialized!
+    GLenum res = glewInit();
+    if (res != GLEW_OK)
+    {
+        fprintf(stderr, "Error: '%s'\n", glewGetErrorString(res));
+        return 1;
+    }
+
+
+    CreateVertexBuffer();
+
+    CreateVertexArrayObject();
+
+    Framebuffer();
+    
+    CreateTexture();
+
+    ShaderProgramSource source = ParseShader("res/shaders/Teapot.shader");
+
+    shader = CreateShader(source.VertexSource, source.FragmentSource);
+    assert(shader != -1);
+
+    glm::vec3 rotate(cos(degree), sin(degree), 1);
+    lightPos = rotate * lightPosOrigin;
+    glm::vec3 horRotate(1, sin(horDegree), cos(horDegree));
+    lightPos = horRotate * lightPosOrigin;
+
+    source = ParseShader("res/shaders/Plane.shader");
+
+    planShader = CreateShader(source.VertexSource, source.FragmentSource);
+    assert(planShader != -1);
+
+    //get origin frame buffer
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &originFB);
+
+    glutDisplayFunc(myDisplay);
+
+    glutKeyboardFunc(myKeyboard);
+    glutSpecialFunc(mySpecialKeyboard);
+    glutMouseFunc(myMouse);
+    glutMotionFunc(drag2);
+    //glutIdleFunc(myIdle);
+
+    glutMainLoop();
+    return 0;
+}
+
+
+static void GLClearError()
+{
+
+    while (glGetError() != GL_NO_ERROR)
+        ;
+}
+
+static bool GLLogCall(const char* function, const char* file, int line)
+{
+
+    while (GLenum error = glGetError())
+    {
+        std::cout << "[OpenGL Error] (" << error << ")" << function << " " << file << ":" << line << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+std::vector<unsigned char> decodeTwoSteps(const char* filename, std::vector<unsigned char> decodeImage) {
+    std::vector<unsigned char> png;
+
+    //load and decode
+    unsigned error = lodepng::load_file(png, filename);
+    if (!error) error = lodepng::decode(decodeImage, width, height, png);
+
+    //if there's an error, display it
+    if (error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+
+    return decodeImage;
+
+    //the pixels are now in the vector "image", 4 bytes per pixel, ordered RGBARGBA..., use it as texture, draw it, ...
+}
+
+
+char* ReadFromFile(const std::string& fileName)
+{
+    return nullptr;
+}
+
+
+
+static ShaderProgramSource ParseShader(const std::string& filepath)
+{
+
+    std::ifstream stream(filepath);
+
+    enum class ShaderType
+    {
+        NONE = -1,
+        VERTEX = 0,
+        FRAGMENT = 1
+    };
+
+    std::string line;
+    std::stringstream ss[2];
+    ShaderType type = ShaderType::NONE;
+    while (getline(stream, line))
+    {
+
+        if (line.find("#shader") != std::string::npos)
+        {
+
+            if (line.find("vertex") != std::string::npos)
+                type = ShaderType::VERTEX;
+            else if (line.find("fragment") != std::string::npos)
+                type = ShaderType::FRAGMENT;
+        }
+        else
+        {
+
+            ss[(int)type] << line << '\n';
+        }
+    }
+
+    return { ss[0].str(), ss[1].str() };
+}
+
+static unsigned int CompileShader(unsigned int type, const std::string& source)
+{
+
+    unsigned int id = glCreateShader(type);
+    const char* src = source.c_str();
+    glShaderSource(id, 1, &src, nullptr);
+    glCompileShader(id);
+
+    int result;
+    glGetShaderiv(id, GL_COMPILE_STATUS, &result);
+    if (result == GL_FALSE)
+    {
+        int length;
+        glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
+        char* message = (char*)alloca(length * sizeof(char));
+        glGetShaderInfoLog(id, length, &length, message);
+        std::cout << "Failed to compile" << (type == GL_VERTEX_SHADER ? "verttex" : "fragment")
+            << " shader!" << std::endl;
+        std::cout << message << std::endl;
+        glDeleteShader(id);
+        return 0;
+    }
+
+    return id;
+}
+
+static unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader)
+{
+
+    unsigned int program = glCreateProgram();
+    unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
+    unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
+
+    glAttachShader(program, vs);
+    glAttachShader(program, fs);
+    glLinkProgram(program);
+    glValidateProgram(program);
+
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+
+    return program;
+}
+
+void ReCompileShader()
+{
+
+    std::cout << "Recompile shader" << std::endl;
+
+    GLsizei maxCount = 2;
+    GLsizei count;
+    GLuint shaders[2];
+
+    glGetAttachedShaders(shader, maxCount,
+        &count,
+        shaders);
+
+    for (unsigned int i = 0; i < maxCount; i++)
+    {
+        glDetachShader(shader, shaders[i]);
+    }
+
+    ShaderProgramSource source = ParseShader("res/shaders/Teapot.shader");
+    unsigned int vs = CompileShader(GL_VERTEX_SHADER, source.VertexSource);
+    unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, source.FragmentSource);
+
+    glAttachShader(shader, vs);
+    glAttachShader(shader, fs);
+    glLinkProgram(shader);
+    glValidateProgram(shader);
+
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+}
+
+float red = 0.0f;
+
+void myIdle()
+{
+
+    glClearColor(red, 0, 0, 0);
+    red += 0.02;
+    if (red >= 2)
+        red = 0;
+
+    glutPostRedisplay();
+}
+
+void myKeyboard(unsigned char key, int x, int y)
+{
+
+    switch (key)
+    {
+    case 27: //ESC keycode
+        glutDestroyWindow(glutGetWindow());
+        break;
+
+    }
+}
+void mySpecialKeyboard(int key, int x, int y)
+{
+
+    switch (key)
+    {
+    case GLUT_KEY_F6: //F6 keycode
+        ReCompileShader();
+        break;
+    }
+}
+
+void myMouse(int button, int state, int x, int y)
+{
+
+    // Save the left button state
+    if (button == GLUT_LEFT_BUTTON)
+    {
+        leftMouseButtonDown = (state == GLUT_DOWN);
+        if (!leftMouseButtonDown)
+        {
+            firstLeftMouse = true;
+        }
+    }
+
+    if (button == GLUT_RIGHT_BUTTON)
+    {
+        // \/ right MouseButton
+        rightMouseButtonDown = (state == GLUT_DOWN);
+        if (!rightMouseButtonDown)
+        {
+            firstRightMouse = true;
+        }
+    }
+}
+
+
 void drag2(int x, int y)
 {
 
@@ -751,69 +825,4 @@ void drag2(int x, int y)
     }
 
     glutPostRedisplay();
-}
-
-int main(int argc, char** argv)
-{
-    
-    /*for (int i = 0; i < argc; ++i)
-        std::cout << argv[i] << "\n";
-
-    objName = argv[1];*/
-
-    glutInit(&argc, argv);
-    glutInitContextFlags(GLUT_DEBUG);
-    glutInitWindowSize(SCR_WIDTH, SCR_HEIGHT);
-    glutInitWindowPosition(100, 100);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
-    glutCreateWindow("Window Title");
-
-    //CY_GL_REGISTER_DEBUG_CALLBACK;
-    glEnable(GL_DEPTH_TEST);
-
-    //Must be done after glut is initialized!
-    GLenum res = glewInit();
-    if (res != GLEW_OK)
-    {
-        fprintf(stderr, "Error: '%s'\n", glewGetErrorString(res));
-        return 1;
-    }
-
-
-    CreateVertexBuffer();
-
-    CreateVertexArrayObject();
-
-    Framebuffer();
-    
-    CreateTexture();
-
-    ShaderProgramSource source = ParseShader("res/shaders/Teapot.shader");
-
-    shader = CreateShader(source.VertexSource, source.FragmentSource);
-    assert(shader != -1);
-
-    glm::vec3 rotate(cos(degree), sin(degree), 1);
-    lightPos = rotate * lightPosOrigin;
-    glm::vec3 horRotate(1, sin(horDegree), cos(horDegree));
-    lightPos = horRotate * lightPosOrigin;
-
-    source = ParseShader("res/shaders/Plane.shader");
-
-    planShader = CreateShader(source.VertexSource, source.FragmentSource);
-    assert(planShader != -1);
-
-    //get origin frame buffer
-    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &originFB);
-
-    glutDisplayFunc(myDisplay);
-
-    glutKeyboardFunc(myKeyboard);
-    glutSpecialFunc(mySpecialKeyboard);
-    glutMouseFunc(myMouse);
-    glutMotionFunc(drag2);
-    //glutIdleFunc(myIdle);
-
-    glutMainLoop();
-    return 0;
 }
