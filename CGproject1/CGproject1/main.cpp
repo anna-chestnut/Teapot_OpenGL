@@ -66,7 +66,7 @@ const unsigned int SCR_HEIGHT = 600;
 
 // camera
 Camera cameraPlane(glm::vec3(0.0f, 0.0f, 60.0f));
-Camera camera(glm::vec3(0.0f, 0.0f, 40.0f));//60
+Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));//60
 //float lastX = SCR_WIDTH / 2.0f;
 //float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -110,6 +110,7 @@ float horDegree = 0.0f;
 //texture pixels
 std::vector<unsigned char> image; //the raw pixels
 std::vector<unsigned char> specimage; //the raw pixels
+
 unsigned width, height;
 
 std::string objName;    
@@ -509,9 +510,9 @@ static void CreateTexture() {
     for (unsigned int i = 0; i < faces.size(); i++) {
 
         const char* c = faces[i].c_str();
-        specimage = decodeTwoSteps(c, specimage);
+        std::vector<unsigned char> cubeimage = decodeTwoSteps(c, cubeimage);
         assert(&specimage);
-        GLCall(glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, &specimage[0]));
+        GLCall(glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &cubeimage[0]));
     }
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
