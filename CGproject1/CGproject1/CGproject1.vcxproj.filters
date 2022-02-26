@@ -1330,5 +1330,29 @@
     <None Include="shader.vert" />
     <None Include="shader.frag" />
     <None Include="res\shaders\Plane.shader" />
+    <None Include="res\shaders\CubeMap.shader" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\texture\cubemap_negx.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\texture\cubemap_negy.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\texture\cubemap_negz.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\texture\cubemap_posx.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\texture\cubemap_posy.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\texture\cubemap_posz.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="res\texture\cube.obj" />
   </ItemGroup>
 </Project>
