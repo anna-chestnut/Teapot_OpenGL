@@ -103,8 +103,8 @@ std::vector<glm::vec2> planVerticesTexture;
 std::vector<glm::vec3> cubemapVertices;
 
 // lighting
-glm::vec3 lightPos(-60.0f, 45.0f, 20.0f);//1.2f, 1.0f, 2.0f -60.0f, 45.0f, 20.0f
-glm::vec3 lightPosOrigin(-60.0f, 45.0f, 20.0f);
+glm::vec3 lightPos(-60.0f, 60.0f, 10.0f);//1.2f, 1.0f, 2.0f -60.0f, 45.0f, 20.0f
+glm::vec3 lightPosOrigin(-60.0f, 60.0f, 10.0f);
 float degree = 0.0f;
 float horDegree = 0.0f;
 
@@ -196,6 +196,19 @@ void myDisplay()
     assert(proId != -1);
     GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &planeprojection[0][0]));
 
+
+    GLCall(location = glGetUniformLocation(sphereShader, "lightPos"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+
+    GLCall(location = glGetUniformLocation(sphereShader, "specularExponent"));
+    assert(location != -1);
+    GLCall(glUniform1f(location, tm.M(0).Ns));
+
+    //GLCall(location = glGetUniformLocation(sphereShader, "specularStrength"));
+    //assert(location != -1);
+    //GLCall(glUniform1f(location, tm.M(0).illum));
+
     GLCall(glBindVertexArray(vao));
     GLCall(location = glGetUniformLocation(sphereShader, "skybox"));
     assert(location != -1);
@@ -203,7 +216,7 @@ void myDisplay()
     GLCall(glActiveTexture(GL_TEXTURE0));
     GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
-    
+
     //// Set frame buffer target & render teapot
     //// ---------------------------------------
     //GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer));
