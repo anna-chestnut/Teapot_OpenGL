@@ -1331,6 +1331,7 @@
     <None Include="shader.frag" />
     <None Include="res\shaders\Plane.shader" />
     <None Include="res\shaders\CubeMap.shader" />
+    <None Include="res\shaders\Sphere.shader" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\texture\cubemap_negx.png">
@@ -1354,5 +1355,6 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="res\texture\cube.obj" />
+    <Text Include="res\texture\sphere.obj" />
   </ItemGroup>
 </Project>

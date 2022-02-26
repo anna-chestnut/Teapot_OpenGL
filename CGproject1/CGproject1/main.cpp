@@ -83,6 +83,7 @@ float zoom = 0.0f;
 unsigned int shader;
 unsigned int planeShader;
 unsigned int cubeMapShader;
+unsigned int sphereShader;
 unsigned int numberOfV = 0;
 //unsigned int numberOfVN = 0;
 
@@ -171,6 +172,36 @@ void myDisplay()
     GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, cubemapVertices.size()));
 
+
+    GLCall(glDepthMask(GL_TRUE));
+
+    GLCall(glUseProgram(sphereShader));
+
+    glm::mat4 planeview = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
+    glm::mat4 planeprojection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+    glm::mat4 planemodel = rotation * glm::mat4(1.0f); //translation*rotation*scale
+    planemodel = glm::translate(planemodel, glm::vec3(0.0f, -5.0f, -50.0f));
+    //MVP
+    GLCall(GLuint modelId = glGetUniformLocation(sphereShader, "model"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &planemodel[0][0]));
+
+    GLCall(viewId = glGetUniformLocation(sphereShader, "view"));
+    assert(viewId != -1);
+    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &planeview[0][0]));
+
+    GLCall(proId = glGetUniformLocation(sphereShader, "projection"));
+    assert(proId != -1);
+    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &planeprojection[0][0]));
+
+    GLCall(glBindVertexArray(vao));
+    GLCall(location = glGetUniformLocation(sphereShader, "skybox"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 0));
+    GLCall(glActiveTexture(GL_TEXTURE0));
+    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
+    GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
+    
     //// Set frame buffer target & render teapot
     //// ---------------------------------------
     //GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer));
@@ -301,7 +332,7 @@ static void CreateVertexBuffer()
     std::string str = "res/texture/" + objName;
     const char* fileLocation = str.c_str();
     std::cout << fileLocation << std::endl;
-    bool readSuccess = tm.LoadFromFileObj("res/texture/teapot.obj", true, outString);
+    bool readSuccess = tm.LoadFromFileObj("res/texture/sphere.obj", true, outString);
     assert(readSuccess);
 
 
@@ -319,11 +350,11 @@ static void CreateVertexBuffer()
         verticesNormal.push_back(glm::vec3(tm.VN(face.v[1]).x, tm.VN(face.v[1]).y, tm.VN(face.v[1]).z));
         verticesNormal.push_back(glm::vec3(tm.VN(face.v[2]).x, tm.VN(face.v[2]).y, tm.VN(face.v[2]).z));
 
-        //texture vertices
-        face = tm.FT(i);
-        verticesTexture.push_back(glm::vec3(tm.VT(face.v[0]).x, tm.VT(face.v[0]).y, tm.VT(face.v[0]).z));
-        verticesTexture.push_back(glm::vec3(tm.VT(face.v[1]).x, tm.VT(face.v[1]).y, tm.VT(face.v[1]).z));
-        verticesTexture.push_back(glm::vec3(tm.VT(face.v[2]).x, tm.VT(face.v[2]).y, tm.VT(face.v[2]).z));
+        ////texture vertices
+        //face = tm.FT(i);
+        //verticesTexture.push_back(glm::vec3(tm.VT(face.v[0]).x, tm.VT(face.v[0]).y, tm.VT(face.v[0]).z));
+        //verticesTexture.push_back(glm::vec3(tm.VT(face.v[1]).x, tm.VT(face.v[1]).y, tm.VT(face.v[1]).z));
+        //verticesTexture.push_back(glm::vec3(tm.VT(face.v[2]).x, tm.VT(face.v[2]).y, tm.VT(face.v[2]).z));
     }
 
     numberOfV = vertices.size();
@@ -336,9 +367,9 @@ static void CreateVertexBuffer()
     GLCall(glCreateBuffers(1, &normalbuffer));
     GLCall(glNamedBufferStorage(normalbuffer, verticesNormal.size() * sizeof(verticesNormal[0]), &verticesNormal[0], 0));
 
-    //texture buffer
-    GLCall(glCreateBuffers(1, &texturebuffer));
-    GLCall(glNamedBufferStorage(texturebuffer, verticesTexture.size() * sizeof(verticesTexture[0]), &verticesTexture[0], 0));
+    ////texture buffer
+    //GLCall(glCreateBuffers(1, &texturebuffer));
+    //GLCall(glNamedBufferStorage(texturebuffer, verticesTexture.size() * sizeof(verticesTexture[0]), &verticesTexture[0], 0));
 
     // plane vertices
     // -----------------------
@@ -452,45 +483,45 @@ static void CreateVertexArrayObject()
 
 static void CreateTexture() {
 
-    // teapot texture
-    // --------------
-    // 
-    // generate diffuse texture
-    GLCall(glGenTextures(1, &texture1));
-    GLCall(glBindTexture(GL_TEXTURE_2D, texture1));
-    std::string file = "res/texture";
-    std::string diffusePic = tm.M(0).map_Kd.data;
-    std::string str = "res/texture/" + diffusePic;
-    const char* fileLocation = str.c_str();
-    image = decodeTwoSteps(fileLocation, image);//"res/texture/brick.png"
-    assert(&image);
-    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]));
-    GLCall(glGenerateMipmap(GL_TEXTURE_2D));
-    
-    // set texture filtering parameters
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    //// teapot texture
+    //// --------------
+    //// 
+    //// generate diffuse texture
+    //GLCall(glGenTextures(1, &texture1));
+    //GLCall(glBindTexture(GL_TEXTURE_2D, texture1));
+    //std::string file = "res/texture";
+    //std::string diffusePic = tm.M(0).map_Kd.data;
+    //std::string str = "res/texture/" + diffusePic;
+    //const char* fileLocation = str.c_str();
+    //image = decodeTwoSteps(fileLocation, image);//"res/texture/brick.png"
+    //assert(&image);
+    //GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]));
+    //GLCall(glGenerateMipmap(GL_TEXTURE_2D));
+    //
+    //// set texture filtering parameters
+    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 
-    // set the texture wrapping parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    //// set the texture wrapping parameters
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    GLCall(glGenTextures(1, &spectexture));
-    GLCall(glBindTexture(GL_TEXTURE_2D, spectexture));
+    //GLCall(glGenTextures(1, &spectexture));
+    //GLCall(glBindTexture(GL_TEXTURE_2D, spectexture));
 
-    // generate specular texture
-    specimage = decodeTwoSteps("res/texture/brick.png", specimage);
-    assert(&specimage);
-    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &specimage[0]));
-    GLCall(glGenerateMipmap(GL_TEXTURE_2D));
+    //// generate specular texture
+    //specimage = decodeTwoSteps("res/texture/brick.png", specimage);
+    //assert(&specimage);
+    //GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &specimage[0]));
+    //GLCall(glGenerateMipmap(GL_TEXTURE_2D));
 
-    // set texture filtering parameters
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
-    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    //// set texture filtering parameters
+    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 
-    // set the texture wrapping parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    //// set the texture wrapping parameters
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     // cube-map texture
     // ----------------
@@ -567,6 +598,10 @@ static void LoadShaders() {
     cubeMapShader = CreateShader(source.VertexSource, source.FragmentSource);
     assert(cubeMapShader != -1);
 
+    source = ParseShader("res/shaders/Sphere.shader");
+    sphereShader = CreateShader(source.VertexSource, source.FragmentSource);
+    assert(sphereShader != -1);
+
 }
 
 
@@ -606,10 +641,6 @@ int main(int argc, char** argv)
     CreateTexture();
 
     LoadShaders();
-    glm::vec3 rotate(cos(degree), sin(degree), 1);
-    lightPos = rotate * lightPosOrigin;
-    glm::vec3 horRotate(1, sin(horDegree), cos(horDegree));
-    lightPos = horRotate * lightPosOrigin;
     //get origin frame buffer
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &originFB);
 
