@@ -1332,6 +1332,7 @@
     <None Include="res\shaders\Plane.shader" />
     <None Include="res\shaders\CubeMap.shader" />
     <None Include="res\shaders\Sphere.shader" />
+    <None Include="res\shaders\Screen.shader" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\texture\cubemap_negx.png">

@@ -33,6 +33,7 @@ in vec3 Position;
 
 uniform vec3 cameraPos;
 uniform samplerCube skybox;
+uniform sampler2D teapotReflect;
 uniform vec3 planeColor;
 uniform vec3 clearColor = vec3(0, 0, 0);
 
@@ -41,13 +42,22 @@ void main()
 	//vec3 col = texture(teapotTexture, TexCoords).rgb;
 	/*if (col == clearColor) {
 		col = planeColor;
-	}*/
+	//}*/
+	//vec3 col = texture(teapotReflect, TexCoords).rgb;
 
-	// reflection
+	//if (col == clearColor) {
+	//	// reflection
+	//	vec3 I = normalize(Position - cameraPos);
+	//	vec3 R = reflect(I, normalize(Normal));
+	//	col = texture(skybox, R).rgb;
+	//}
+
+	//FragColor = vec4(texture(skybox, R).rgb, 1.0);
+	//color = vec4(texture(skybox, R).rgb, 1.0);
+
 	vec3 I = normalize(Position - cameraPos);
 	vec3 R = reflect(I, normalize(Normal));
-	//FragColor = vec4(texture(skybox, R).rgb, 1.0);
-	color = vec4(texture(skybox, R).rgb, 1.0);
+	vec3 col = texture(skybox, R).rgb;
 
-	//color = vec4(col, 1.0);
+	color = vec4(col, 1.0);
 };
