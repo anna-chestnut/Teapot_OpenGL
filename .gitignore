@@ -72,7 +72,6 @@ StyleCopReport.xml
 *_h.h
 *.ilk
 *.meta
-*.obj
 *.iobj
 *.pch
 *.pdb
@@ -390,3 +389,11 @@ CGproject1/CGproject1/CGproject1.vcxproj
 CGproject1/Debug/CGproject1.exe
 CGproject1/Debug/CGproject1.exe
 CGproject1/Debug/CGproject1.exe
+CGproject1/CGproject1/Debug/main.obj
+CGproject1/CGproject1/Debug/lodepng.obj
+CGproject1/CGproject1/Debug/glm.obj
+CGproject1/CGproject1/Debug/glad.obj
+CGproject1/CGproject1/x64/Debug/glad.obj
+CGproject1/CGproject1/x64/Debug/glm.obj
+CGproject1/CGproject1/x64/Debug/lodepng.obj
+CGproject1/CGproject1/x64/Debug/main.obj
