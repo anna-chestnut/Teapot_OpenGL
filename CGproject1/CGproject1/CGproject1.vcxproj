@@ -456,7 +456,10 @@
     <ClInclude Include="res\vendor\glm\vector_relational.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="res\shaders\CubeMap.shader" />
     <None Include="res\shaders\Plane.shader" />
+    <None Include="res\shaders\Screen.shader" />
+    <None Include="res\shaders\Sphere.shader" />
     <None Include="shader.frag" />
     <None Include="shader.vert" />
     <None Include="res\shaders\Teapot.shader" />
@@ -596,6 +599,18 @@
     <None Include="res\vendor\glm\gtx\vector_angle.inl" />
     <None Include="res\vendor\glm\gtx\vector_query.inl" />
     <None Include="res\vendor\glm\gtx\wrap.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\texture\cubemap_negx.png" />
+    <Image Include="res\texture\cubemap_negy.png" />
+    <Image Include="res\texture\cubemap_negz.png" />
+    <Image Include="res\texture\cubemap_posx.png" />
+    <Image Include="res\texture\cubemap_posy.png" />
+    <Image Include="res\texture\cubemap_posz.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="res\texture\cube.obj" />
+    <Text Include="res\texture\sphere.obj" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
