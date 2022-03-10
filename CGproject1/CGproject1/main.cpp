@@ -45,13 +45,7 @@ GLuint vao;
 GLuint planeVao;
 GLuint planVertexbuffer;
 GLuint planTexturebuffer;
-// quard
-GLuint quardVao;
-GLuint quardVertexbuffer;
-GLuint quardTexturebuffer;
-// cube
-GLuint cubemapVertexbuffer;
-GLuint cubemapVao;
+
 GLuint texture1;
 GLuint spectexture;
 GLuint renderedTexture; 
@@ -72,7 +66,7 @@ const unsigned int SCR_HEIGHT = 600;
 
 // camera
 Camera cameraPlane(glm::vec3(0.0f, 0.0f, 60.0f));
-Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));//60
+Camera camera(glm::vec3(0.0f, 10.0f, 60.0f));//60
 //float lastX = SCR_WIDTH / 2.0f;
 //float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -86,7 +80,7 @@ float rightLastX = SCR_WIDTH / 2.0;
 float rightLastY = SCR_HEIGHT / 2.0;
 float zoom = 0.0f;
 
-unsigned int shader;
+unsigned int teapotShader;
 unsigned int planeShader;
 unsigned int quardShader;
 unsigned int cubeMapShader;
@@ -106,11 +100,6 @@ std::vector<glm::vec3> verticesTexture;
 // plane
 std::vector<glm::vec3> planeVertices;
 std::vector<glm::vec2> planVerticesTexture;
-// cube-map
-std::vector<glm::vec3> cubemapVertices;
-// quard
-std::vector<glm::vec2> quardVertices;
-std::vector<glm::vec2> quardVerticesTexture;
 
 // lighting
 glm::vec3 lightPos(-60.0f, 60.0f, 10.0f);//1.2f, 1.0f, 2.0f -60.0f, 45.0f, 20.0f
@@ -140,7 +129,7 @@ char* ReadFromFile(const std::string & fileName);
 static ShaderProgramSource ParseShader(const std::string & filepath);
 static unsigned int CompileShader(unsigned int type, const std::string& source);
 static unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader);
-void ReCompileShader();
+//void ReCompileShader();
 void myIdle();
 void myKeyboard(unsigned char key, int x, int y);
 void myMouse(int button, int state, int x, int y);
@@ -155,151 +144,82 @@ void myDisplay()
     glEnable(GL_DEPTH_TEST);
     GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-    GLCall(glDepthMask(GL_FALSE));
+    //GLCall(glDepthMask(GL_FALSE));
 
-    // cube-map
-    // --------
-    GLCall(glUseProgram(cubeMapShader));
-    GLCall(glBindVertexArray(cubemapVao));
-
-    glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f) * rotation; // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
-    glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
     
-    GLCall(GLuint viewId = glGetUniformLocation(cubeMapShader, "view"));
-    assert(viewId != -1);
-    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
-
-    GLCall(GLuint proId = glGetUniformLocation(cubeMapShader, "projection"));
-    assert(proId != -1);
-    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
-
-    GLCall(GLuint location = glGetUniformLocation(cubeMapShader, "skybox"));
-    assert(location != -1);
-    GLCall(glUniform1i(location, 0));
-    GLCall(glActiveTexture(GL_TEXTURE0));
-    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
-    GLCall(glDrawArrays(GL_TRIANGLES, 0, cubemapVertices.size()));
-
     // teapot
     // ------
-    GLCall(glDepthMask(GL_TRUE));
+    //GLCall(glDepthMask(GL_TRUE));
 
-    GLCall(glUseProgram(sphereShader));
+    GLCall(glUseProgram(teapotShader));
 
     glm::mat4 teapot_view = camera.GetViewMatrix();
     glm::mat4 teapot_projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); 
     glm::mat4 teapot_model = rotation * glm::mat4(1.0f); 
-    teapot_model = glm::translate(teapot_model, glm::vec3(10.0f, -20.0f, -80.0f));
+    //teapot_model = glm::translate(teapot_model, glm::vec3(10.0f, -20.0f, -80.0f));
     teapot_model = glm::rotate(teapot_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    teapot_model = glm::rotate(teapot_model, glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    //teapot_model = glm::rotate(teapot_model, glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     //MVP
-    GLCall(GLuint modelId = glGetUniformLocation(sphereShader, "model"));
+    GLCall(GLuint modelId = glGetUniformLocation(teapotShader, "model"));
     assert(modelId != -1);
     GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &teapot_model[0][0]));
 
-    GLCall(viewId = glGetUniformLocation(sphereShader, "view"));
+    GLCall(GLuint viewId = glGetUniformLocation(teapotShader, "view"));
     assert(viewId != -1);
     GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &teapot_view[0][0]));
 
-    GLCall(proId = glGetUniformLocation(sphereShader, "projection"));
+    GLCall(GLuint proId = glGetUniformLocation(teapotShader, "projection"));
     assert(proId != -1);
     GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &teapot_projection[0][0]));
 
 
-    GLCall(location = glGetUniformLocation(sphereShader, "lightPos"));
+    GLCall(GLuint location = glGetUniformLocation(teapotShader, "lightPos"));
     assert(location != -1);
     GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
 
-    GLCall(location = glGetUniformLocation(sphereShader, "specularExponent"));
+    GLCall(location = glGetUniformLocation(teapotShader, "specularExponent"));
     assert(location != -1);
     GLCall(glUniform1f(location, tm.M(0).Ns));
 
-    //GLCall(location = glGetUniformLocation(sphereShader, "specularStrength"));
-    //assert(location != -1);
-    //GLCall(glUniform1f(location, tm.M(0).illum));
+    GLCall(location = glGetUniformLocation(teapotShader, "specularStrength"));
+    assert(location != -1);
+    GLCall(glUniform1f(location, tm.M(0).illum));
 
-    GLCall(glBindVertexArray(vao));
-    GLCall(location = glGetUniformLocation(sphereShader, "skybox"));
+    GLCall(location = glGetUniformLocation(teapotShader, "ambientColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, tm.M(0).Ka[0], tm.M(0).Ka[1], tm.M(0).Ka[2]));
+
+    GLCall(location = glGetUniformLocation(teapotShader, "diffuseColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, tm.M(0).Kd[0], tm.M(0).Kd[1], tm.M(0).Kd[2]));
+
+    GLCall(location = glGetUniformLocation(teapotShader, "specularColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, tm.M(0).Ks[0], tm.M(0).Ks[1], tm.M(0).Ks[2]));
+
+    //texture
+    GLCall(location = glGetUniformLocation(teapotShader, "tex"));
     assert(location != -1);
     GLCall(glUniform1i(location, 0));
-    GLCall(glActiveTexture(GL_TEXTURE0));
-    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
+
+    // bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+
+    //specular texture
+    GLCall(location = glGetUniformLocation(teapotShader, "specTex"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 1));
+
+    // bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, spectexture);
+
+    GLCall(glBindVertexArray(vao));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
-
     
-    //glm::mat4 planeview = cameraPlane.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
-    //glm::mat4 planeprojection = glm::perspective(glm::radians(cameraPlane.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
-    //glm::mat4 planemodel = planerotation * glm::mat4(1.0f); //translation*rotation*scale
-
-    //GLCall(GLuint location = glGetUniformLocation(shader, "ambientColor"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, tm.M(0).Ka[0], tm.M(0).Ka[1], tm.M(0).Ka[2]));
-
-    //GLCall(location = glGetUniformLocation(shader, "diffuseColor"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, tm.M(0).Kd[0], tm.M(0).Kd[1], tm.M(0).Kd[2]));
-
-    //GLCall(location = glGetUniformLocation(shader, "specularColor"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, tm.M(0).Ks[0], tm.M(0).Ks[1], tm.M(0).Ks[2]));
-
-    //GLCall(location = glGetUniformLocation(shader, "lightPos"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
-
-    //GLCall(location = glGetUniformLocation(shader, "specularExponent"));
-    //assert(location != -1);
-    //GLCall(glUniform1f(location, tm.M(0).Ns));
-
-    //GLCall(location = glGetUniformLocation(shader, "specularStrength"));
-    //assert(location != -1);
-    //GLCall(glUniform1f(location, tm.M(0).illum));
-
-    ////MVP
-    //GLCall(GLuint modelId = glGetUniformLocation(shader, "model"));
-    //assert(modelId != -1);
-    //GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &planemodel[0][0]));
-
-    //GLCall(GLuint viewId = glGetUniformLocation(shader, "view"));
-    //assert(viewId != -1);
-    //GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &planeview[0][0]));
-
-    //GLCall(GLuint proId = glGetUniformLocation(shader, "projection"));
-    //assert(proId != -1);
-    //GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &planeprojection[0][0]));
-
-    ////texture
-    //GLCall(location = glGetUniformLocation(shader, "tex"));
-    //assert(location != -1);
-    //GLCall(glUniform1i(location, 0));
-
-    //// bind textures on corresponding texture units
-    //glActiveTexture(GL_TEXTURE0);
-    //glBindTexture(GL_TEXTURE_2D, texture1);
-
-    ////specular texture
-    //GLCall(location = glGetUniformLocation(shader, "specTex"));
-    //assert(location != -1);
-    //GLCall(glUniform1i(location, 1));
-
-    //// bind textures on corresponding texture units
-    //glActiveTexture(GL_TEXTURE1);
-    //glBindTexture(GL_TEXTURE_2D, spectexture);
-
-    //GLCall(glBindVertexArray(vao));
-    //GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
-    //glBindVertexArray(0);
-
-    // bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
-    // ---------------------------------
-    //GLCall(glGenerateTextureMipmap(renderedTexture));
-    ////Set frame buffer target to the back buffer
-    //GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, originFB));
-    ////glDisable(GL_DEPTH_TEST);
-    //GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
-    //glClearColor(0, 0, 0, 0);
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // draw plane
+    // ----------
     GLCall(glUseProgram(planeShader));
     GLCall(glBindVertexArray(planeVao));
 
@@ -307,9 +227,9 @@ void myDisplay()
     glm::mat4 plane_view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
     glm::mat4 plane_projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
     glm::mat4 plane_model = rotation * glm::mat4(1.0f); //translation*rotation*scale
-    plane_model = glm::translate(plane_model, glm::vec3(10.0f, -20.0f, -80.0f)); 
-    plane_model = glm::rotate(plane_model, glm::radians(-180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    plane_model = glm::rotate(plane_model, glm::radians(-45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    //plane_model = glm::translate(plane_model, glm::vec3(10.0f, -20.0f, -80.0f)); 
+    //plane_model = glm::rotate(plane_model, glm::radians(-180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    //plane_model = glm::rotate(plane_model, glm::radians(-45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     //MVP
     GLCall(modelId = glGetUniformLocation(planeShader, "model"));
     assert(modelId != -1);
@@ -327,90 +247,25 @@ void myDisplay()
     //assert(location != -1);
     //GLCall(glUniform3f(location, 0.5f, 0.5f, 0.5f));//1.0f, 0.5f, 0.31f
 
-    //texture
-    GLCall(location = glGetUniformLocation(planeShader, "skybox"));
-    assert(location != -1);
-    GLCall(glUniform1i(location, 0));
-    glActiveTexture(GL_TEXTURE0);
-    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
+    ////texture
+    //GLCall(location = glGetUniformLocation(planeShader, "skybox"));
+    //assert(location != -1);
+    //GLCall(glUniform1i(location, 0));
+    //glActiveTexture(GL_TEXTURE0);
+    //GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
 
     //GLCall(glBindTexture(GL_TEXTURE_2D, renderedTexture));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
     // Set frame buffer target & render teapot
     // ---------------------------------------
-    GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer));
+    /*GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer));
     GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
     GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-    GLCall(glUseProgram(sphereShader));
+    GLCall(glUseProgram(sphereShader));*/
 
-    // teapot reflect texture
-    // ----------------------
-    glm::mat4 mReflection = glm::mat4
-    (
-        1.0, 0.0, 0.0, 0.0,
-        0.0, -1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        10.0, -20.0, 0.0, 1.0
-    );
-
-    glm::mat4 teapot_r_view = camera.GetViewMatrix() * mReflection;
-    glm::mat4 teapot_r_projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-    glm::mat4 teapot_r_model = rotation * glm::mat4(1.0f);
-    teapot_r_model = glm::translate(teapot_r_model, glm::vec3(0.0f, 0.0f, -80.0f));
-    teapot_r_model = glm::rotate(teapot_r_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    teapot_r_model = glm::rotate(teapot_r_model, glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    //MVP
-    GLCall(modelId = glGetUniformLocation(sphereShader, "model"));
-    assert(modelId != -1);
-    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &teapot_r_model[0][0]));
-
-    GLCall(viewId = glGetUniformLocation(sphereShader, "view"));
-    assert(viewId != -1);
-    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &teapot_r_view[0][0]));
-
-    GLCall(proId = glGetUniformLocation(sphereShader, "projection"));
-    assert(proId != -1);
-    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &teapot_r_projection[0][0]));
-
-
-    GLCall(location = glGetUniformLocation(sphereShader, "lightPos"));
-    assert(location != -1);
-    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
-
-    GLCall(location = glGetUniformLocation(sphereShader, "specularExponent"));
-    assert(location != -1);
-    GLCall(glUniform1f(location, tm.M(0).Ns));
     
-    GLCall(glBindVertexArray(vao));
-    GLCall(location = glGetUniformLocation(sphereShader, "skybox"));
-    assert(location != -1);
-    GLCall(glUniform1i(location, 0));
-    GLCall(glActiveTexture(GL_TEXTURE0));
-    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
-    GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
-
-
-    // Teapot reflection on quard
-    // --------------------------
-    GLCall(glGenerateTextureMipmap(renderedTexture));
-    //Set frame buffer target to the back buffer
-    GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, originFB));
-    //glDisable(GL_DEPTH_TEST);
-    GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
-    glClearColor(0, 0, 0, 0);
-    glDisable(GL_DEPTH_TEST);
-
-    GLCall(glUseProgram(quardShader));
-    GLCall(glBindVertexArray(quardVao));
-    //texture
-    GLCall(location = glGetUniformLocation(quardShader, "screenTexture"));
-    assert(location != -1);
-    GLCall(glUniform1i(location, 0));
-    glActiveTexture(GL_TEXTURE0);
-    GLCall(glBindTexture(GL_TEXTURE_2D, renderedTexture));
-    glDrawArrays(GL_TRIANGLES, 0, 6);
 
     glutSwapBuffers();
 
@@ -444,11 +299,11 @@ static void CreateVertexBuffer()
         verticesNormal.push_back(glm::vec3(tm.VN(face.v[1]).x, tm.VN(face.v[1]).y, tm.VN(face.v[1]).z));
         verticesNormal.push_back(glm::vec3(tm.VN(face.v[2]).x, tm.VN(face.v[2]).y, tm.VN(face.v[2]).z));
 
-        ////texture vertices
-        //face = tm.FT(i);
-        //verticesTexture.push_back(glm::vec3(tm.VT(face.v[0]).x, tm.VT(face.v[0]).y, tm.VT(face.v[0]).z));
-        //verticesTexture.push_back(glm::vec3(tm.VT(face.v[1]).x, tm.VT(face.v[1]).y, tm.VT(face.v[1]).z));
-        //verticesTexture.push_back(glm::vec3(tm.VT(face.v[2]).x, tm.VT(face.v[2]).y, tm.VT(face.v[2]).z));
+        //texture vertices
+        face = tm.FT(i);
+        verticesTexture.push_back(glm::vec3(tm.VT(face.v[0]).x, tm.VT(face.v[0]).y, tm.VT(face.v[0]).z));
+        verticesTexture.push_back(glm::vec3(tm.VT(face.v[1]).x, tm.VT(face.v[1]).y, tm.VT(face.v[1]).z));
+        verticesTexture.push_back(glm::vec3(tm.VT(face.v[2]).x, tm.VT(face.v[2]).y, tm.VT(face.v[2]).z));
     }
 
     numberOfV = vertices.size();
@@ -461,9 +316,9 @@ static void CreateVertexBuffer()
     GLCall(glCreateBuffers(1, &normalbuffer));
     GLCall(glNamedBufferStorage(normalbuffer, verticesNormal.size() * sizeof(verticesNormal[0]), &verticesNormal[0], 0));
 
-    ////texture buffer
-    //GLCall(glCreateBuffers(1, &texturebuffer));
-    //GLCall(glNamedBufferStorage(texturebuffer, verticesTexture.size() * sizeof(verticesTexture[0]), &verticesTexture[0], 0));
+    //texture buffer
+    GLCall(glCreateBuffers(1, &texturebuffer));
+    GLCall(glNamedBufferStorage(texturebuffer, verticesTexture.size() * sizeof(verticesTexture[0]), &verticesTexture[0], 0));
 
     // plane vertices
     // -----------------------
@@ -490,49 +345,7 @@ static void CreateVertexBuffer()
     GLCall(glCreateBuffers(1, &planTexturebuffer));
     GLCall(glNamedBufferStorage(planTexturebuffer, planVerticesTexture.size() * sizeof(planVerticesTexture[0]), &planVerticesTexture[0], 0));
 
-    // cube-map vertices
-    // -----------------
-
-    readSuccess = cubemap.LoadFromFileObj("res/texture/cube.obj", true, outString);
-    assert(readSuccess);
-
-    for (unsigned int i = 0; i < cubemap.NF(); i++)
-    {
-        //vetices
-        cy::TriMesh::TriFace face = cubemap.F(i);
-        cubemapVertices.push_back(glm::vec3(cubemap.V(face.v[0]).x, cubemap.V(face.v[0]).y, cubemap.V(face.v[0]).z));
-        cubemapVertices.push_back(glm::vec3(cubemap.V(face.v[1]).x, cubemap.V(face.v[1]).y, cubemap.V(face.v[1]).z));
-        cubemapVertices.push_back(glm::vec3(cubemap.V(face.v[2]).x, cubemap.V(face.v[2]).y, cubemap.V(face.v[2]).z));
-        
-    }
-
-    GLCall(glCreateBuffers(1, &cubemapVertexbuffer));
-    GLCall(glNamedBufferStorage(cubemapVertexbuffer, cubemapVertices.size() * sizeof(cubemapVertices[0]), &cubemapVertices[0], 0));
     
-    // quard vertices
-    // -----------------------
-    float quadVertices[] = {
-        // positions   // texCoords
-        -1.0f,  1.0f,  0.0f, 1.0f,
-        -1.0f, -1.0f,  0.0f, 0.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-
-        -1.0f,  1.0f,  0.0f, 1.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-         1.0f,  1.0f,  1.0f, 1.0f
-    };
-
-    for (unsigned int i = 0; i < 24; i = i + 4)
-    {
-        quardVertices.push_back(glm::vec2(quadVertices[i], quadVertices[i + 1]));
-        quardVerticesTexture.push_back(glm::vec2(quadVertices[i + 2], quadVertices[i + 3]));
-    }
-
-    GLCall(glCreateBuffers(1, &quardVertexbuffer));
-    GLCall(glNamedBufferStorage(quardVertexbuffer, quardVertices.size() * sizeof(quardVertices[0]), &quardVertices[0], 0));
-
-    GLCall(glCreateBuffers(1, &quardTexturebuffer));
-    GLCall(glNamedBufferStorage(quardTexturebuffer, quardVerticesTexture.size() * sizeof(quardVerticesTexture[0]), &quardVerticesTexture[0], 0));
 
 }
 
@@ -587,107 +400,53 @@ static void CreateVertexArrayObject()
     GLCall(glVertexArrayBindingDivisor(planeVao, textureBindingIndex, 0));
     GLCall(glEnableVertexArrayAttrib(planeVao, aTexCoord));
 
-    // create cube-map vertex array object
-    // -----------------------------------
-    GLCall(glCreateVertexArrays(1, &cubemapVao));
-
-    //vertex buffer
-    GLCall(glVertexArrayVertexBuffer(cubemapVao, vertexBindingIndex, cubemapVertexbuffer, 0, sizeof(glm::vec3)));
-    GLCall(glVertexArrayAttribFormat(cubemapVao, pos, 3, GL_FLOAT, GL_FALSE, 0));
-    GLCall(glVertexArrayAttribBinding(cubemapVao, pos, vertexBindingIndex));
-    GLCall(glVertexArrayBindingDivisor(cubemapVao, vertexBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(cubemapVao, pos));
-
-    // create quard vertex array object
-    // -------------------------------
-    GLCall(glCreateVertexArrays(1, &quardVao));
-
-    //vertex buffer
-    GLCall(glVertexArrayVertexBuffer(quardVao, vertexBindingIndex, quardVertexbuffer, 0, sizeof(glm::vec2)));
-    GLCall(glVertexArrayAttribFormat(quardVao, pos, 2, GL_FLOAT, GL_FALSE, 0));
-    GLCall(glVertexArrayAttribBinding(quardVao, pos, vertexBindingIndex));
-    GLCall(glVertexArrayBindingDivisor(quardVao, vertexBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(quardVao, pos));
-
-    //texture buffer
-    GLCall(glVertexArrayVertexBuffer(quardVao, textureBindingIndex, quardTexturebuffer, 0, sizeof(glm::vec2)));
-    GLCall(glVertexArrayAttribFormat(quardVao, aTexCoord, 2, GL_FLOAT, GL_FALSE, 0));
-    GLCall(glVertexArrayAttribBinding(quardVao, aTexCoord, textureBindingIndex));
-    GLCall(glVertexArrayBindingDivisor(quardVao, textureBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(quardVao, aTexCoord));
+    
 }
 
 
 static void CreateTexture() {
 
-    //// teapot texture
-    //// --------------
-    //// 
-    //// generate diffuse texture
-    //GLCall(glGenTextures(1, &texture1));
-    //GLCall(glBindTexture(GL_TEXTURE_2D, texture1));
-    //std::string file = "res/texture";
-    //std::string diffusePic = tm.M(0).map_Kd.data;
-    //std::string str = "res/texture/" + diffusePic;
-    //const char* fileLocation = str.c_str();
-    //image = decodeTwoSteps(fileLocation, image);//"res/texture/brick.png"
-    //assert(&image);
-    //GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]));
-    //GLCall(glGenerateMipmap(GL_TEXTURE_2D));
-    //
-    //// set texture filtering parameters
-    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
-    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    // teapot texture
+    // --------------
+    // 
+    // generate diffuse texture
+    GLCall(glGenTextures(1, &texture1));
+    GLCall(glBindTexture(GL_TEXTURE_2D, texture1));
+    std::string file = "res/texture";
+    std::string diffusePic = tm.M(0).map_Kd.data;
+    std::string str = "res/texture/" + diffusePic;
+    const char* fileLocation = str.c_str();
+    image = decodeTwoSteps(fileLocation, image);//"res/texture/brick.png"
+    assert(&image);
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]));
+    GLCall(glGenerateMipmap(GL_TEXTURE_2D));
+    
+    // set texture filtering parameters
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 
-    //// set the texture wrapping parameters
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    //GLCall(glGenTextures(1, &spectexture));
-    //GLCall(glBindTexture(GL_TEXTURE_2D, spectexture));
+    GLCall(glGenTextures(1, &spectexture));
+    GLCall(glBindTexture(GL_TEXTURE_2D, spectexture));
 
-    //// generate specular texture
-    //specimage = decodeTwoSteps("res/texture/brick.png", specimage);
-    //assert(&specimage);
-    //GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &specimage[0]));
-    //GLCall(glGenerateMipmap(GL_TEXTURE_2D));
+    // generate specular texture
+    specimage = decodeTwoSteps("res/texture/brick-specular.png", specimage);
+    assert(&specimage);
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &specimage[0]));
+    GLCall(glGenerateMipmap(GL_TEXTURE_2D));
 
-    //// set texture filtering parameters
-    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
-    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    // set texture filtering parameters
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 
-    //// set the texture wrapping parameters
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    // cube-map texture
-    // ----------------
-    GLCall(glGenTextures(1, &cubeMapTexture));
-    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
-
-    std::vector<std::string> faces
-    {
-        "res/texture/cubemap_posx.png",
-        "res/texture/cubemap_negx.png",
-        "res/texture/cubemap_posy.png",
-        "res/texture/cubemap_negy.png",
-        "res/texture/cubemap_posz.png",
-        "res/texture/cubemap_negz.png"
-    };
-
-    for (unsigned int i = 0; i < faces.size(); i++) {
-
-        const char* c = faces[i].c_str();
-        std::vector<unsigned char> cubeimage = decodeTwoSteps(c, cubeimage);
-        assert(&specimage);
-        GLCall(glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &cubeimage[0]));
-    }
-
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    
 }
 
 void Framebuffer() {
@@ -724,8 +483,8 @@ void Framebuffer() {
 static void LoadShaders() {
 
     ShaderProgramSource source = ParseShader("res/shaders/Teapot.shader");
-    shader = CreateShader(source.VertexSource, source.FragmentSource);
-    assert(shader != -1);
+    teapotShader = CreateShader(source.VertexSource, source.FragmentSource);
+    assert(teapotShader != -1);
 
     source = ParseShader("res/shaders/Plane.shader");
     planeShader = CreateShader(source.VertexSource, source.FragmentSource);
@@ -777,7 +536,7 @@ int main(int argc, char** argv)
 
     CreateVertexArrayObject();
 
-    Framebuffer();
+    //Framebuffer();
     
     CreateTexture();
 
@@ -920,37 +679,6 @@ static unsigned int CreateShader(const std::string& vertexShader, const std::str
     return program;
 }
 
-void ReCompileShader()
-{
-
-    std::cout << "Recompile shader" << std::endl;
-
-    GLsizei maxCount = 2;
-    GLsizei count;
-    GLuint shaders[2];
-
-    glGetAttachedShaders(shader, maxCount,
-        &count,
-        shaders);
-
-    for (unsigned int i = 0; i < maxCount; i++)
-    {
-        glDetachShader(shader, shaders[i]);
-    }
-
-    ShaderProgramSource source = ParseShader("res/shaders/Teapot.shader");
-    unsigned int vs = CompileShader(GL_VERTEX_SHADER, source.VertexSource);
-    unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, source.FragmentSource);
-
-    glAttachShader(shader, vs);
-    glAttachShader(shader, fs);
-    glLinkProgram(shader);
-    glValidateProgram(shader);
-
-    glDeleteShader(vs);
-    glDeleteShader(fs);
-}
-
 float red = 0.0f;
 
 void myIdle()
@@ -978,12 +706,12 @@ void myKeyboard(unsigned char key, int x, int y)
 void mySpecialKeyboard(int key, int x, int y)
 {
 
-    switch (key)
-    {
-    case GLUT_KEY_F6: //F6 keycode
-        ReCompileShader();
-        break;
-    }
+    //switch (key)
+    //{
+    //case GLUT_KEY_F6: //F6 keycode
+    //    //ReCompileShader();
+    //    break;
+    //}
 }
 
 void myMouse(int button, int state, int x, int y)

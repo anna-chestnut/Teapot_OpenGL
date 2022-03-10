@@ -35,7 +35,7 @@ uniform vec3 ambientColor;
 uniform vec3 diffuseColor;
 uniform vec3 specularColor;
 uniform vec3 viewPos;
-uniform vec3 objectColor;
+//uniform vec3 objectColor;
 uniform float specularExponent;
 uniform float specularStrength;
 uniform sampler2D tex;
