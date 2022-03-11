@@ -44,11 +44,12 @@ GLuint vao;
 // plane
 GLuint planeVao;
 GLuint planVertexbuffer;
+GLuint planNormalbuffer;
 GLuint planTexturebuffer;
 
 GLuint texture1;
 GLuint spectexture;
-GLuint renderedTexture; 
+GLuint depthMap; 
 GLuint cubeMapTexture;
 GLint originFB;
 
@@ -67,6 +68,7 @@ const unsigned int SCR_HEIGHT = 600;
 // camera
 Camera cameraPlane(glm::vec3(0.0f, 0.0f, 60.0f));
 Camera camera(glm::vec3(0.0f, 10.0f, 60.0f));//60
+Camera pointlight(glm::vec3(0.0f, 20.0f, -50.0f));
 //float lastX = SCR_WIDTH / 2.0f;
 //float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -79,12 +81,12 @@ float leftLastY = SCR_HEIGHT / 2.0;
 float rightLastX = SCR_WIDTH / 2.0;
 float rightLastY = SCR_HEIGHT / 2.0;
 float zoom = 0.0f;
+const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+
 
 unsigned int teapotShader;
 unsigned int planeShader;
-unsigned int quardShader;
-unsigned int cubeMapShader;
-unsigned int sphereShader;
+unsigned int shadowShader;
 unsigned int numberOfV = 0;
 //unsigned int numberOfVN = 0;
 
@@ -99,6 +101,7 @@ std::vector<glm::vec3> verticesNormal;
 std::vector<glm::vec3> verticesTexture;
 // plane
 std::vector<glm::vec3> planeVertices;
+std::vector<glm::vec3> planeVerticesNormal;
 std::vector<glm::vec2> planVerticesTexture;
 
 // lighting
@@ -135,7 +138,219 @@ void myKeyboard(unsigned char key, int x, int y);
 void myMouse(int button, int state, int x, int y);
 void mySpecialKeyboard(int key, int x, int y);
 void drag2(int x, int y);
+void renderScene(const unsigned int &i_shader);
 
+void myDisplay2()
+{
+    // render
+    // ------
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // 1. Set frame buffer target & render the depth map
+    // ----------------------------------------------
+    GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer));
+    GLCall(glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT));
+    GLCall(glClear(GL_DEPTH_BUFFER_BIT));
+
+    glm::mat4 light_view = pointlight.GetViewMatrix();
+    glm::mat4 light_projection = glm::perspective(glm::radians(pointlight.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    //glm::mat4 light_model = glm::mat4(1.0f);
+    glm::mat4 matrixMLP = light_projection * light_view;
+
+    GLCall(glUseProgram(shadowShader));
+
+    GLCall(GLuint modelId = glGetUniformLocation(shadowShader, "lightSpaceMatrix"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &matrixMLP[0][0]));
+     
+    //GLCall(glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMap, 0));
+    //GLCall(glDrawBuffer(GL_NONE)); // no color buffer is drawn to
+    //GLCall(glReadBuffer(GL_NONE));
+    renderScene(shadowShader);
+    
+    // reset viewport
+    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // 2. render scene as normal using the generated depth/shadow map  
+    // --------------------------------------------------------------
+    GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, originFB));
+    GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
+    GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
+    GLCall(glUseProgram(planeShader));
+
+    glm::mat4 camera_view = camera.GetViewMatrix();
+    glm::mat4 camera_projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+
+    GLCall(GLuint viewId = glGetUniformLocation(planeShader, "view"));
+    assert(viewId != -1);
+    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &camera_view[0][0]));
+
+    GLCall(GLuint proId = glGetUniformLocation(planeShader, "projection"));
+    assert(proId != -1);
+    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &camera_projection[0][0]));
+
+
+    GLCall(GLuint location = glGetUniformLocation(planeShader, "lightPos"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, pointlight.Position.x, pointlight.Position.y, pointlight.Position.z));
+
+    GLCall(location = glGetUniformLocation(planeShader, "viewPos"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
+    
+    //texture
+    GLCall( location = glGetUniformLocation(planeShader, "shadowMap"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 0));
+
+    // bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+
+    renderScene(planeShader);
+
+    //// teapot
+    //// ------
+    ////GLCall(glDepthMask(GL_TRUE));
+
+    //GLCall(glUseProgram(teapotShader));
+
+    //glm::mat4 teapot_view = camera.GetViewMatrix();
+    //glm::mat4 teapot_projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    //glm::mat4 teapot_model = rotation * glm::mat4(1.0f);
+    ////teapot_model = glm::translate(teapot_model, glm::vec3(10.0f, -20.0f, -80.0f));
+    //teapot_model = glm::rotate(teapot_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    ////teapot_model = glm::rotate(teapot_model, glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ////MVP
+    //GLCall(modelId = glGetUniformLocation(teapotShader, "model"));
+    //assert(modelId != -1);
+    //GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &teapot_model[0][0]));
+
+    //GLCall(GLuint viewId = glGetUniformLocation(teapotShader, "view"));
+    //assert(viewId != -1);
+    //GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &teapot_view[0][0]));
+
+    //GLCall(GLuint proId = glGetUniformLocation(teapotShader, "projection"));
+    //assert(proId != -1);
+    //GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &teapot_projection[0][0]));
+
+
+    //GLCall(GLuint location = glGetUniformLocation(teapotShader, "lightPos"));
+    //assert(location != -1);
+    //GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+
+    //GLCall(location = glGetUniformLocation(teapotShader, "specularExponent"));
+    //assert(location != -1);
+    //GLCall(glUniform1f(location, tm.M(0).Ns));
+
+    //GLCall(location = glGetUniformLocation(teapotShader, "specularStrength"));
+    //assert(location != -1);
+    //GLCall(glUniform1f(location, tm.M(0).illum));
+
+    //GLCall(location = glGetUniformLocation(teapotShader, "ambientColor"));
+    //assert(location != -1);
+    //GLCall(glUniform3f(location, tm.M(0).Ka[0], tm.M(0).Ka[1], tm.M(0).Ka[2]));
+
+    //GLCall(location = glGetUniformLocation(teapotShader, "diffuseColor"));
+    //assert(location != -1);
+    //GLCall(glUniform3f(location, tm.M(0).Kd[0], tm.M(0).Kd[1], tm.M(0).Kd[2]));
+
+    //GLCall(location = glGetUniformLocation(teapotShader, "specularColor"));
+    //assert(location != -1);
+    //GLCall(glUniform3f(location, tm.M(0).Ks[0], tm.M(0).Ks[1], tm.M(0).Ks[2]));
+
+    ////texture
+    //GLCall(location = glGetUniformLocation(teapotShader, "tex"));
+    //assert(location != -1);
+    //GLCall(glUniform1i(location, 0));
+
+    //// bind textures on corresponding texture units
+    //glActiveTexture(GL_TEXTURE0);
+    //glBindTexture(GL_TEXTURE_2D, texture1);
+
+    ////specular texture
+    //GLCall(location = glGetUniformLocation(teapotShader, "specTex"));
+    //assert(location != -1);
+    //GLCall(glUniform1i(location, 1));
+
+    //// bind textures on corresponding texture units
+    //glActiveTexture(GL_TEXTURE1);
+    //glBindTexture(GL_TEXTURE_2D, spectexture);
+
+    //GLCall(glBindVertexArray(vao));
+    //GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
+
+    //// draw plane
+    //// ----------
+    //GLCall(glUseProgram(planeShader));
+    //GLCall(glBindVertexArray(planeVao));
+
+    ///*MVP into vertex shader*/
+    //glm::mat4 plane_view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
+    //glm::mat4 plane_projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+    //glm::mat4 plane_model = rotation * glm::mat4(1.0f); //translation*rotation*scale
+    ////plane_model = glm::translate(plane_model, glm::vec3(10.0f, -20.0f, -80.0f)); 
+    ////plane_model = glm::rotate(plane_model, glm::radians(-180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    ////plane_model = glm::rotate(plane_model, glm::radians(-45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    ////MVP
+    //GLCall(modelId = glGetUniformLocation(planeShader, "model"));
+    //assert(modelId != -1);
+    //GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &plane_model[0][0]));
+
+    //GLCall(viewId = glGetUniformLocation(planeShader, "view"));
+    //assert(viewId != -1);
+    //GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &plane_view[0][0]));
+
+    //GLCall(proId = glGetUniformLocation(planeShader, "projection"));
+    //assert(proId != -1);
+    //GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &plane_projection[0][0]));
+
+    //GLCall(modelId = glGetUniformLocation(planeShader, "matrixShadow"));
+    //assert(modelId != -1);
+    //GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &matrixMLP[0][0]));
+
+    ////texture
+    //GLCall(location = glGetUniformLocation(planeShader, "shadowMap"));
+    //assert(location != -1);
+    //GLCall(glUniform1i(location, 0));
+
+    //// bind textures on corresponding texture units
+    //glActiveTexture(GL_TEXTURE0);
+    //glBindTexture(GL_TEXTURE_2D, depthMap);
+
+    //GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+
+    glutSwapBuffers();
+    
+}
+
+void renderScene(const unsigned int& i_shader)
+{
+    // teapot
+    // ------
+    glm::mat4 view = camera.GetViewMatrix();
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 teapot_model = rotation * glm::mat4(1.0f);
+    teapot_model = glm::rotate(teapot_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    GLCall(GLuint modelId = glGetUniformLocation(i_shader, "model"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &teapot_model[0][0]));
+    GLCall(glBindVertexArray(vao));
+    GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
+
+    // draw plane
+    // ----------
+    GLCall(glBindVertexArray(planeVao));
+    glm::mat4 plane_model = rotation * glm::mat4(1.0f); 
+    GLCall(modelId = glGetUniformLocation(i_shader, "model"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &plane_model[0][0]));
+    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+
+}
 
 void myDisplay()
 {
@@ -243,27 +458,8 @@ void myDisplay()
     assert(proId != -1);
     GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &plane_projection[0][0]));
 
-    //GLCall(location = glGetUniformLocation(planeShader, "planeColor"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, 0.5f, 0.5f, 0.5f));//1.0f, 0.5f, 0.31f
-
-    ////texture
-    //GLCall(location = glGetUniformLocation(planeShader, "skybox"));
-    //assert(location != -1);
-    //GLCall(glUniform1i(location, 0));
-    //glActiveTexture(GL_TEXTURE0);
-    //GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
-
-    //GLCall(glBindTexture(GL_TEXTURE_2D, renderedTexture));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
-    // Set frame buffer target & render teapot
-    // ---------------------------------------
-    /*GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer));
-    GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
-    GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-
-    GLCall(glUseProgram(sphereShader));*/
 
     
 
@@ -323,24 +519,28 @@ static void CreateVertexBuffer()
     // plane vertices
     // -----------------------
     float allplaneVertices[] = {
-        // positions          // texture coords 
-         20.0f, -0.5f,  20.0f,  1.0f, 0.0f,
-        -20.0f, -0.5f,  20.0f,  0.0f, 0.0f,
-        -20.0f, -0.5f, -20.0f,  0.0f, 1.0f,
+        // positions            // normals         // texcoords
+         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+        -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
+        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
 
-         20.0f, -0.5f,  20.0f,  1.0f, 0.0f,
-        -20.0f, -0.5f, -20.0f,  0.0f, 1.0f,
-         20.0f, -0.5f, -20.0f,  1.0f, 1.0f
+         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
+         25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 25.0f
     };
 
-    for (unsigned int i = 0; i < 30; i = i+5)
+    for (unsigned int i = 0; i < 48; i = i+8)
     {
         planeVertices.push_back(glm::vec3(allplaneVertices[i], allplaneVertices[i+1], allplaneVertices[i+2]));
-        planVerticesTexture.push_back(glm::vec2(allplaneVertices[i + 3], allplaneVertices[i + 4]));
+        planeVerticesNormal.push_back(glm::vec3(allplaneVertices[i + 3], allplaneVertices[i + 4], allplaneVertices[i + 5]));
+        planVerticesTexture.push_back(glm::vec2(allplaneVertices[i + 6], allplaneVertices[i + 7]));
     }
 
     GLCall(glCreateBuffers(1, &planVertexbuffer));
     GLCall(glNamedBufferStorage(planVertexbuffer, planeVertices.size() * sizeof(planeVertices[0]), &planeVertices[0], 0));
+
+    GLCall(glCreateBuffers(1, &planNormalbuffer));
+    GLCall(glNamedBufferStorage(planNormalbuffer, planeVerticesNormal.size() * sizeof(planeVerticesNormal[0]), &planeVerticesNormal[0], 0));
 
     GLCall(glCreateBuffers(1, &planTexturebuffer));
     GLCall(glNamedBufferStorage(planTexturebuffer, planVerticesTexture.size() * sizeof(planVerticesTexture[0]), &planVerticesTexture[0], 0));
@@ -382,8 +582,8 @@ static void CreateVertexArrayObject()
     GLCall(glVertexArrayBindingDivisor(vao, textureBindingIndex, 0));
     GLCall(glEnableVertexArrayAttrib(vao, aTexCoord));
 
-    // create plan vertex array object
-    // -------------------------------
+    // create plane vertex array object
+    // --------------------------------
     GLCall(glCreateVertexArrays(1, &planeVao));
 
     //vertex buffer
@@ -392,6 +592,13 @@ static void CreateVertexArrayObject()
     GLCall(glVertexArrayAttribBinding(planeVao, pos, vertexBindingIndex));
     GLCall(glVertexArrayBindingDivisor(planeVao, vertexBindingIndex, 0));
     GLCall(glEnableVertexArrayAttrib(planeVao, pos));
+
+    //normal buffer
+    GLCall(glVertexArrayVertexBuffer(planeVao, normalBindingIndex, planNormalbuffer, 0, sizeof(glm::vec3)));
+    GLCall(glVertexArrayAttribFormat(planeVao, aNormal, 3, GL_FLOAT, GL_FALSE, 0));
+    GLCall(glVertexArrayAttribBinding(planeVao, aNormal, normalBindingIndex));
+    GLCall(glVertexArrayBindingDivisor(planeVao, normalBindingIndex, 0));
+    GLCall(glEnableVertexArrayAttrib(planeVao, aNormal));
 
     //texture buffer
     GLCall(glVertexArrayVertexBuffer(planeVao, textureBindingIndex, planTexturebuffer, 0, sizeof(glm::vec2)));
@@ -455,27 +662,38 @@ void Framebuffer() {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
     // create a color attachment texture
     //unsigned int textureColorbuffer;
-    glGenTextures(1, &renderedTexture);
-    glBindTexture(GL_TEXTURE_2D, renderedTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderedTexture, 0);
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, depthMap, 0);
 
-    GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
-    GLCall(glDrawBuffers(1, drawBuffers));
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMap, 0);
 
-    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
-    unsigned int rbo;
-    glGenRenderbuffers(1, &rbo);
-    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT); // use a single renderbuffer object for both a depth AND stencil buffer.
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+
+    //GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+    //GLCall(glDrawBuffers(1, drawBuffers));
+
+    //// create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+    //unsigned int rbo;
+    //glGenRenderbuffers(1, &rbo);
+    //glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    //glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SHADOW_WIDTH, SHADOW_HEIGHT); // use a single renderbuffer object for both a depth AND stencil buffer.
+    //glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
     // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
 
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete! 2" << std::endl;
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 }
@@ -490,17 +708,10 @@ static void LoadShaders() {
     planeShader = CreateShader(source.VertexSource, source.FragmentSource);
     assert(planeShader != -1);
 
-    source = ParseShader("res/shaders/Screen.shader");
-    quardShader = CreateShader(source.VertexSource, source.FragmentSource);
-    assert(quardShader != -1);
+    source = ParseShader("res/shaders/Shadow.shader");
+    shadowShader = CreateShader(source.VertexSource, source.FragmentSource);
+    assert(shadowShader != -1);
 
-    source = ParseShader("res/shaders/CubeMap.shader");
-    cubeMapShader = CreateShader(source.VertexSource, source.FragmentSource);
-    assert(cubeMapShader != -1);
-
-    source = ParseShader("res/shaders/Sphere.shader");
-    sphereShader = CreateShader(source.VertexSource, source.FragmentSource);
-    assert(sphereShader != -1);
 
 }
 
@@ -536,7 +747,7 @@ int main(int argc, char** argv)
 
     CreateVertexArrayObject();
 
-    //Framebuffer();
+    Framebuffer();
     
     CreateTexture();
 
@@ -544,7 +755,7 @@ int main(int argc, char** argv)
     //get origin frame buffer
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &originFB);
 
-    glutDisplayFunc(myDisplay);
+    glutDisplayFunc(myDisplay2);
 
     glutKeyboardFunc(myKeyboard);
     glutSpecialFunc(mySpecialKeyboard);
