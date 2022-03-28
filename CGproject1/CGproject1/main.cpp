@@ -140,6 +140,132 @@ void mySpecialKeyboard(int key, int x, int y);
 void drag2(int x, int y);
 void renderScene(const unsigned int i_shader);
 
+
+void myDisplay2() {
+    //Set frame buffer target & render
+    GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer));
+    GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
+    GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
+    GLCall(glUseProgram(teapotShader));
+
+    glm::mat4 planeview = cameraPlane.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
+    glm::mat4 planeprojection = glm::perspective(glm::radians(cameraPlane.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+    glm::mat4 planemodel = planerotation * glm::mat4(1.0f); //translation*rotation*scale
+
+    GLCall(GLuint location = glGetUniformLocation(teapotShader, "ambientColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, tm.M(0).Ka[0], tm.M(0).Ka[1], tm.M(0).Ka[2]));
+
+    GLCall(location = glGetUniformLocation(teapotShader, "diffuseColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, tm.M(0).Kd[0], tm.M(0).Kd[1], tm.M(0).Kd[2]));
+
+    GLCall(location = glGetUniformLocation(teapotShader, "specularColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, tm.M(0).Ks[0], tm.M(0).Ks[1], tm.M(0).Ks[2]));
+
+    GLCall(location = glGetUniformLocation(teapotShader, "lightPos"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+
+    GLCall(location = glGetUniformLocation(teapotShader, "specularExponent"));
+    assert(location != -1);
+    GLCall(glUniform1f(location, tm.M(0).Ns));
+
+    GLCall(location = glGetUniformLocation(teapotShader, "specularStrength"));
+    assert(location != -1);
+    GLCall(glUniform1f(location, tm.M(0).illum));
+    /*
+    GLCall(location = glGetUniformLocation(shader, "viewPos"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
+    */
+
+    //MVP
+    GLCall(GLuint modelId = glGetUniformLocation(teapotShader, "model"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &planemodel[0][0]));
+
+    GLCall(GLuint viewId = glGetUniformLocation(teapotShader, "view"));
+    assert(viewId != -1);
+    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &planeview[0][0]));
+
+    GLCall(GLuint proId = glGetUniformLocation(teapotShader, "projection"));
+    assert(proId != -1);
+    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &planeprojection[0][0]));
+
+
+    //texture
+    GLCall(location = glGetUniformLocation(teapotShader, "tex"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 0));
+
+    // bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+
+    //specular texture
+    GLCall(location = glGetUniformLocation(teapotShader, "specTex"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 1));
+
+    // bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, spectexture);
+
+    GLCall(glBindVertexArray(vao));
+    GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
+    glBindVertexArray(0);
+
+    // bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
+    // ---------------------------------
+    GLCall(glGenerateTextureMipmap(depthMap));
+    //Set frame buffer target to the back buffer
+    GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, originFB));
+    //glDisable(GL_DEPTH_TEST);
+    GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
+    glClearColor(0, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    GLCall(glUseProgram(debugPlaneShader));
+    GLCall(glBindVertexArray(planeVao));
+
+    /*MVP into vertex shader*/
+    glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+    glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
+    //MVP
+    GLCall(modelId = glGetUniformLocation(debugPlaneShader, "model"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
+
+    GLCall(viewId = glGetUniformLocation(debugPlaneShader, "view"));
+    assert(viewId != -1);
+    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
+
+    GLCall(proId = glGetUniformLocation(debugPlaneShader, "projection"));
+    assert(proId != -1);
+    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
+
+    GLCall(location = glGetUniformLocation(debugPlaneShader, "planeColor"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, 0.5f, 0.5f, 0.5f));//1.0f, 0.5f, 0.31f
+
+    //texture
+    GLCall(location = glGetUniformLocation(debugPlaneShader, "teapotTexture"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 2));
+
+    // bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+
+    //GLCall(glBindTexture(GL_TEXTURE_2D, renderedTexture));
+    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+
+    glutSwapBuffers();
+}
+
 void myDisplay()
 {
     // render
@@ -330,13 +456,13 @@ static void CreateVertexBuffer()
     // -----------------------
     float allplaneVertices[] = {
         // positions            // normals         // texcoords
-         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  1.0f,  0.0f,
         -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
-        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
+        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 1.0f,
 
-         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
-         25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 25.0f
+         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  1.0f,  0.0f,
+        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 1.0f,
+         25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  1.0f, 1.0f
     };
 
     for (unsigned int i = 0; i < 48; i = i+8)
@@ -474,6 +600,60 @@ void Framebuffer() {
     //unsigned int textureColorbuffer;
     glGenTextures(1, &depthMap);
     glBindTexture(GL_TEXTURE_2D, depthMap);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, depthMap, 0);
+    /*
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);*/
+
+    //glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMap, 0);
+
+    //glDrawBuffer(GL_NONE);
+    //glReadBuffer(GL_NONE);
+
+    GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+    GLCall(glDrawBuffers(1, drawBuffers));
+
+    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+    unsigned int rbo;
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SHADOW_WIDTH, SHADOW_HEIGHT); // use a single renderbuffer object for both a depth AND stencil buffer.
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
+    // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+
+    assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete! 2" << std::endl;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+}
+
+void FramebufferDepth() {
+
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    // create a color attachment texture
+    //unsigned int textureColorbuffer;
+    /*glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, depthMap, 0);*/
+    
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -486,8 +666,8 @@ void Framebuffer() {
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
 
-    //GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
-    //GLCall(glDrawBuffers(1, drawBuffers));
+    GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+    GLCall(glDrawBuffers(1, drawBuffers));
 
     // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
     unsigned int rbo;
@@ -568,7 +748,7 @@ int main(int argc, char** argv)
     //get origin frame buffer
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &originFB);
 
-    glutDisplayFunc(myDisplay);
+    glutDisplayFunc(myDisplay2);
 
     glutKeyboardFunc(myKeyboard);
     glutSpecialFunc(mySpecialKeyboard);
