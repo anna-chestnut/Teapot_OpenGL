@@ -56,6 +56,7 @@ GLuint texture1;
 GLuint spectexture;
 GLuint renderedTexture; 
 GLuint cubeMapTexture;
+GLuint normalTexture;
 GLint originFB;
 
 glm::mat4 transform = glm::mat4(1.0f);
@@ -72,7 +73,7 @@ const unsigned int SCR_HEIGHT = 600;
 
 // camera
 Camera cameraPlane(glm::vec3(0.0f, 0.0f, 60.0f));
-Camera camera(glm::vec3(0.0f, 0.0f, 0.0f));//60
+Camera camera(glm::vec3(0.0f, 0.0f, 60.0f));//60
 //float lastX = SCR_WIDTH / 2.0f;
 //float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -89,6 +90,7 @@ float zoom = 0.0f;
 unsigned int shader;
 unsigned int planeShader;
 unsigned int quardShader;
+unsigned int normalShader;
 unsigned int cubeMapShader;
 unsigned int sphereShader;
 unsigned int numberOfV = 0;
@@ -113,8 +115,8 @@ std::vector<glm::vec2> quardVertices;
 std::vector<glm::vec2> quardVerticesTexture;
 
 // lighting
-glm::vec3 lightPos(-60.0f, 60.0f, 10.0f);//1.2f, 1.0f, 2.0f -60.0f, 45.0f, 20.0f
-glm::vec3 lightPosOrigin(-60.0f, 60.0f, 10.0f);
+glm::vec3 lightPos(20.0f, 20.0f, 10.0f);//1.2f, 1.0f, 2.0f -60.0f, 45.0f, 20.0f
+glm::vec3 lightPosOrigin(20.0f, 20.0f, 10.0f);
 float degree = 0.0f;
 float horDegree = 0.0f;
 
@@ -155,262 +157,51 @@ void myDisplay()
     glEnable(GL_DEPTH_TEST);
     GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-    GLCall(glDepthMask(GL_FALSE));
-
-    // cube-map
-    // --------
-    GLCall(glUseProgram(cubeMapShader));
-    GLCall(glBindVertexArray(cubemapVao));
-
-    glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f) * rotation; // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
-    glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
     
-    GLCall(GLuint viewId = glGetUniformLocation(cubeMapShader, "view"));
+    // quard
+    // --------------------------
+    
+    GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
+    glClearColor(0, 0, 0, 0);
+
+    GLCall(glUseProgram(normalShader));
+    GLCall(glBindVertexArray(planeVao));
+    /*MVP into vertex shader*/
+    glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+    glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
+    //MVP
+    GLCall(GLuint modelId = glGetUniformLocation(normalShader, "model"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
+
+    GLCall(GLuint viewId = glGetUniformLocation(normalShader, "view"));
     assert(viewId != -1);
     GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
 
-    GLCall(GLuint proId = glGetUniformLocation(cubeMapShader, "projection"));
+    GLCall(GLuint proId = glGetUniformLocation(normalShader, "projection"));
     assert(proId != -1);
     GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
-    GLCall(GLuint location = glGetUniformLocation(cubeMapShader, "skybox"));
-    assert(location != -1);
-    GLCall(glUniform1i(location, 0));
-    GLCall(glActiveTexture(GL_TEXTURE0));
-    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
-    GLCall(glDrawArrays(GL_TRIANGLES, 0, cubemapVertices.size()));
-
-    // teapot
-    // ------
-    GLCall(glDepthMask(GL_TRUE));
-
-    GLCall(glUseProgram(sphereShader));
-
-    glm::mat4 teapot_view = camera.GetViewMatrix();
-    glm::mat4 teapot_projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); 
-    glm::mat4 teapot_model = rotation * glm::mat4(1.0f); 
-    teapot_model = glm::translate(teapot_model, glm::vec3(10.0f, -20.0f, -80.0f));
-    teapot_model = glm::rotate(teapot_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    teapot_model = glm::rotate(teapot_model, glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    //MVP
-    GLCall(GLuint modelId = glGetUniformLocation(sphereShader, "model"));
-    assert(modelId != -1);
-    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &teapot_model[0][0]));
-
-    GLCall(viewId = glGetUniformLocation(sphereShader, "view"));
-    assert(viewId != -1);
-    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &teapot_view[0][0]));
-
-    GLCall(proId = glGetUniformLocation(sphereShader, "projection"));
-    assert(proId != -1);
-    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &teapot_projection[0][0]));
-
-
-    GLCall(location = glGetUniformLocation(sphereShader, "lightPos"));
-    assert(location != -1);
-    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
-
-    GLCall(location = glGetUniformLocation(sphereShader, "specularExponent"));
-    assert(location != -1);
-    GLCall(glUniform1f(location, tm.M(0).Ns));
-
-    //GLCall(location = glGetUniformLocation(sphereShader, "specularStrength"));
-    //assert(location != -1);
-    //GLCall(glUniform1f(location, tm.M(0).illum));
-
-    GLCall(glBindVertexArray(vao));
-    GLCall(location = glGetUniformLocation(sphereShader, "skybox"));
-    assert(location != -1);
-    GLCall(glUniform1i(location, 0));
-    GLCall(glActiveTexture(GL_TEXTURE0));
-    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
-    GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
-
-    
-    //glm::mat4 planeview = cameraPlane.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
-    //glm::mat4 planeprojection = glm::perspective(glm::radians(cameraPlane.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
-    //glm::mat4 planemodel = planerotation * glm::mat4(1.0f); //translation*rotation*scale
-
-    //GLCall(GLuint location = glGetUniformLocation(shader, "ambientColor"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, tm.M(0).Ka[0], tm.M(0).Ka[1], tm.M(0).Ka[2]));
-
-    //GLCall(location = glGetUniformLocation(shader, "diffuseColor"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, tm.M(0).Kd[0], tm.M(0).Kd[1], tm.M(0).Kd[2]));
-
-    //GLCall(location = glGetUniformLocation(shader, "specularColor"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, tm.M(0).Ks[0], tm.M(0).Ks[1], tm.M(0).Ks[2]));
-
-    //GLCall(location = glGetUniformLocation(shader, "lightPos"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
-
-    //GLCall(location = glGetUniformLocation(shader, "specularExponent"));
-    //assert(location != -1);
-    //GLCall(glUniform1f(location, tm.M(0).Ns));
-
-    //GLCall(location = glGetUniformLocation(shader, "specularStrength"));
-    //assert(location != -1);
-    //GLCall(glUniform1f(location, tm.M(0).illum));
-
-    ////MVP
-    //GLCall(GLuint modelId = glGetUniformLocation(shader, "model"));
-    //assert(modelId != -1);
-    //GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &planemodel[0][0]));
-
-    //GLCall(GLuint viewId = glGetUniformLocation(shader, "view"));
-    //assert(viewId != -1);
-    //GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &planeview[0][0]));
-
-    //GLCall(GLuint proId = glGetUniformLocation(shader, "projection"));
-    //assert(proId != -1);
-    //GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &planeprojection[0][0]));
-
-    ////texture
-    //GLCall(location = glGetUniformLocation(shader, "tex"));
-    //assert(location != -1);
-    //GLCall(glUniform1i(location, 0));
-
-    //// bind textures on corresponding texture units
-    //glActiveTexture(GL_TEXTURE0);
-    //glBindTexture(GL_TEXTURE_2D, texture1);
-
-    ////specular texture
-    //GLCall(location = glGetUniformLocation(shader, "specTex"));
-    //assert(location != -1);
-    //GLCall(glUniform1i(location, 1));
-
-    //// bind textures on corresponding texture units
-    //glActiveTexture(GL_TEXTURE1);
-    //glBindTexture(GL_TEXTURE_2D, spectexture);
-
-    //GLCall(glBindVertexArray(vao));
-    //GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
-    //glBindVertexArray(0);
-
-    // bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
-    // ---------------------------------
-    //GLCall(glGenerateTextureMipmap(renderedTexture));
-    ////Set frame buffer target to the back buffer
-    //GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, originFB));
-    ////glDisable(GL_DEPTH_TEST);
-    //GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
-    //glClearColor(0, 0, 0, 0);
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    GLCall(glUseProgram(planeShader));
-    GLCall(glBindVertexArray(planeVao));
-
-    /*MVP into vertex shader*/
-    glm::mat4 plane_view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
-    glm::mat4 plane_projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
-    glm::mat4 plane_model = rotation * glm::mat4(1.0f); //translation*rotation*scale
-    plane_model = glm::translate(plane_model, glm::vec3(10.0f, -20.0f, -80.0f)); 
-    plane_model = glm::rotate(plane_model, glm::radians(-180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    plane_model = glm::rotate(plane_model, glm::radians(-45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    //MVP
-    GLCall(modelId = glGetUniformLocation(planeShader, "model"));
-    assert(modelId != -1);
-    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &plane_model[0][0]));
-
-    GLCall(viewId = glGetUniformLocation(planeShader, "view"));
-    assert(viewId != -1);
-    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &plane_view[0][0]));
-
-    GLCall(proId = glGetUniformLocation(planeShader, "projection"));
-    assert(proId != -1);
-    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &plane_projection[0][0]));
-
-    //GLCall(location = glGetUniformLocation(planeShader, "planeColor"));
+    //GLCall(GLuint location = glGetUniformLocation(normalShader, "planeColor"));
     //assert(location != -1);
     //GLCall(glUniform3f(location, 0.5f, 0.5f, 0.5f));//1.0f, 0.5f, 0.31f
 
-    //texture
-    GLCall(location = glGetUniformLocation(planeShader, "skybox"));
-    assert(location != -1);
-    GLCall(glUniform1i(location, 0));
-    glActiveTexture(GL_TEXTURE0);
-    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
-
-    //GLCall(glBindTexture(GL_TEXTURE_2D, renderedTexture));
-    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
-
-    // Set frame buffer target & render teapot
-    // ---------------------------------------
-    GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer));
-    GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
-    GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-
-    GLCall(glUseProgram(sphereShader));
-
-    // teapot reflect texture
-    // ----------------------
-    glm::mat4 mReflection = glm::mat4
-    (
-        1.0, 0.0, 0.0, 0.0,
-        0.0, -1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        10.0, -20.0, 0.0, 1.0
-    );
-
-    glm::mat4 teapot_r_view = camera.GetViewMatrix() * mReflection;
-    glm::mat4 teapot_r_projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-    glm::mat4 teapot_r_model = rotation * glm::mat4(1.0f);
-    teapot_r_model = glm::translate(teapot_r_model, glm::vec3(0.0f, 0.0f, -80.0f));
-    teapot_r_model = glm::rotate(teapot_r_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    teapot_r_model = glm::rotate(teapot_r_model, glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    //MVP
-    GLCall(modelId = glGetUniformLocation(sphereShader, "model"));
-    assert(modelId != -1);
-    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &teapot_r_model[0][0]));
-
-    GLCall(viewId = glGetUniformLocation(sphereShader, "view"));
-    assert(viewId != -1);
-    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &teapot_r_view[0][0]));
-
-    GLCall(proId = glGetUniformLocation(sphereShader, "projection"));
-    assert(proId != -1);
-    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &teapot_r_projection[0][0]));
-
-
-    GLCall(location = glGetUniformLocation(sphereShader, "lightPos"));
+    GLCall(GLuint location = glGetUniformLocation(normalShader, "lightPos"));
     assert(location != -1);
     GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
 
-    GLCall(location = glGetUniformLocation(sphereShader, "specularExponent"));
-    assert(location != -1);
-    GLCall(glUniform1f(location, tm.M(0).Ns));
-    
-    GLCall(glBindVertexArray(vao));
-    GLCall(location = glGetUniformLocation(sphereShader, "skybox"));
-    assert(location != -1);
-    GLCall(glUniform1i(location, 0));
-    GLCall(glActiveTexture(GL_TEXTURE0));
-    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
-    GLCall(glDrawArrays(GL_TRIANGLES, 0, numberOfV));
-
-
-    // Teapot reflection on quard
-    // --------------------------
-    GLCall(glGenerateTextureMipmap(renderedTexture));
-    //Set frame buffer target to the back buffer
-    GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, originFB));
-    //glDisable(GL_DEPTH_TEST);
-    GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
-    glClearColor(0, 0, 0, 0);
-    glDisable(GL_DEPTH_TEST);
-
-    GLCall(glUseProgram(quardShader));
-    GLCall(glBindVertexArray(quardVao));
     //texture
-    GLCall(location = glGetUniformLocation(quardShader, "screenTexture"));
+    GLCall(location = glGetUniformLocation(normalShader, "normalMap"));
     assert(location != -1);
     GLCall(glUniform1i(location, 0));
+
+    // bind textures on corresponding texture units
     glActiveTexture(GL_TEXTURE0);
-    GLCall(glBindTexture(GL_TEXTURE_2D, renderedTexture));
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindTexture(GL_TEXTURE_2D, normalTexture);
+
+    //GLCall(glBindTexture(GL_TEXTURE_2D, renderedTexture));
+    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
     glutSwapBuffers();
 
@@ -467,15 +258,25 @@ static void CreateVertexBuffer()
 
     // plane vertices
     // -----------------------
+    //float allplaneVertices[] = {
+    //    // positions          // texture coords 
+    //     20.0f, -0.5f,  20.0f,  1.0f, 0.0f,
+    //    -20.0f, -0.5f,  20.0f,  0.0f, 0.0f,
+    //    -20.0f, -0.5f, -20.0f,  0.0f, 1.0f,
+
+    //     20.0f, -0.5f,  20.0f,  1.0f, 0.0f,
+    //    -20.0f, -0.5f, -20.0f,  0.0f, 1.0f,
+    //     20.0f, -0.5f, -20.0f,  1.0f, 1.0f
+    //};
     float allplaneVertices[] = {
         // positions          // texture coords 
-         20.0f, -0.5f,  20.0f,  1.0f, 0.0f,
-        -20.0f, -0.5f,  20.0f,  0.0f, 0.0f,
-        -20.0f, -0.5f, -20.0f,  0.0f, 1.0f,
+         20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
+        -20.0f, 20.0f,  0.0f,  0.0f, 0.0f,
+        -20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
 
-         20.0f, -0.5f,  20.0f,  1.0f, 0.0f,
-        -20.0f, -0.5f, -20.0f,  0.0f, 1.0f,
-         20.0f, -0.5f, -20.0f,  1.0f, 1.0f
+         20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
+        -20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
+         20.0f, -20.0, 0.0f,  1.0f, 1.0f
     };
 
     for (unsigned int i = 0; i < 30; i = i+5)
@@ -660,6 +461,25 @@ static void CreateTexture() {
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
+    // normal texture
+    // --------------
+    GLCall(glGenTextures(1, &normalTexture));
+    GLCall(glBindTexture(GL_TEXTURE_2D, normalTexture));
+
+    // generate specular texture
+    specimage = decodeTwoSteps("res/texture/teapot_normal.png", specimage);
+    assert(&specimage);
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &specimage[0]));
+    GLCall(glGenerateMipmap(GL_TEXTURE_2D));
+
+    // set texture filtering parameters
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
     // cube-map texture
     // ----------------
     GLCall(glGenTextures(1, &cubeMapTexture));
@@ -734,6 +554,10 @@ static void LoadShaders() {
     source = ParseShader("res/shaders/Screen.shader");
     quardShader = CreateShader(source.VertexSource, source.FragmentSource);
     assert(quardShader != -1);
+
+    source = ParseShader("res/shaders/NormalMapping.shader");
+    normalShader = CreateShader(source.VertexSource, source.FragmentSource);
+    assert(normalShader != -1);
 
     source = ParseShader("res/shaders/CubeMap.shader");
     cubeMapShader = CreateShader(source.VertexSource, source.FragmentSource);
