@@ -45,10 +45,10 @@ GLuint vao;
 GLuint planeVao;
 GLuint planVertexbuffer;
 GLuint planTexturebuffer;
-// quard
-GLuint quardVao;
-GLuint quardVertexbuffer;
-GLuint quardTexturebuffer;
+// geometry
+GLuint geometryVao;
+GLuint geometryVertexbuffer;
+GLuint geometryTexturebuffer;
 // cube
 GLuint cubemapVertexbuffer;
 GLuint cubemapVao;
@@ -91,8 +91,7 @@ unsigned int shader;
 unsigned int planeShader;
 unsigned int quardShader;
 unsigned int normalShader;
-unsigned int cubeMapShader;
-unsigned int sphereShader;
+unsigned int geometryShader;
 unsigned int numberOfV = 0;
 //unsigned int numberOfVN = 0;
 
@@ -108,11 +107,8 @@ std::vector<glm::vec3> verticesTexture;
 // plane
 std::vector<glm::vec3> planeVertices;
 std::vector<glm::vec2> planVerticesTexture;
-// cube-map
-std::vector<glm::vec3> cubemapVertices;
-// quard
-std::vector<glm::vec2> quardVertices;
-std::vector<glm::vec2> quardVerticesTexture;
+// geometry
+std::vector<glm::vec3> geometryVertices;
 
 // lighting
 glm::vec3 lightPos(20.0f, 20.0f, 10.0f);//1.2f, 1.0f, 2.0f -60.0f, 45.0f, 20.0f
@@ -135,6 +131,14 @@ struct ShaderProgramSource
     std::string FragmentSource;
 };
 
+struct ShaderWithGeometryProgramSource
+{
+
+    std::string VertexSource;
+    std::string FragmentSource;
+    std::string GeometrySource;
+};
+
 static void GLClearError();
 static bool GLLogCall(const char* function, const char* file, int line);
 std::vector<unsigned char> decodeTwoSteps(const char* filename, std::vector<unsigned char> decodeImage);
@@ -142,6 +146,9 @@ char* ReadFromFile(const std::string & fileName);
 static ShaderProgramSource ParseShader(const std::string & filepath);
 static unsigned int CompileShader(unsigned int type, const std::string& source);
 static unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader);
+static ShaderWithGeometryProgramSource ParseShaderWithGeometry(const std::string& filepath);
+static unsigned int CompileShaderWithGeometry(unsigned int type, const std::string& source);
+static unsigned int CreateShaderWithGeometry(const std::string& vertexShader, const std::string& fragmentShader, const std::string& geometryShader);
 void ReCompileShader();
 void myIdle();
 void myKeyboard(unsigned char key, int x, int y);
@@ -158,50 +165,55 @@ void myDisplay()
     GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
     
-    // quard
-    // --------------------------
+    // draw normal map on the plane
+    // ----------------------------
     
     GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
     glClearColor(0, 0, 0, 0);
 
-    GLCall(glUseProgram(normalShader));
-    GLCall(glBindVertexArray(planeVao));
-    /*MVP into vertex shader*/
-    glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
-    glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
-    //MVP
-    GLCall(GLuint modelId = glGetUniformLocation(normalShader, "model"));
-    assert(modelId != -1);
-    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
+    //GLCall(glUseProgram(normalShader));
+    //GLCall(glBindVertexArray(planeVao));
+    ///*MVP into vertex shader*/
+    //glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
+    //glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+    //glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
+    ////MVP
+    //GLCall(GLuint modelId = glGetUniformLocation(normalShader, "model"));
+    //assert(modelId != -1);
+    //GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
 
-    GLCall(GLuint viewId = glGetUniformLocation(normalShader, "view"));
-    assert(viewId != -1);
-    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
+    //GLCall(GLuint viewId = glGetUniformLocation(normalShader, "view"));
+    //assert(viewId != -1);
+    //GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
 
-    GLCall(GLuint proId = glGetUniformLocation(normalShader, "projection"));
-    assert(proId != -1);
-    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
+    //GLCall(GLuint proId = glGetUniformLocation(normalShader, "projection"));
+    //assert(proId != -1);
+    //GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
-    //GLCall(GLuint location = glGetUniformLocation(normalShader, "planeColor"));
+    //GLCall(GLuint location = glGetUniformLocation(normalShader, "lightPos"));
     //assert(location != -1);
-    //GLCall(glUniform3f(location, 0.5f, 0.5f, 0.5f));//1.0f, 0.5f, 0.31f
+    //GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
 
-    GLCall(GLuint location = glGetUniformLocation(normalShader, "lightPos"));
-    assert(location != -1);
-    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+    ////texture
+    //GLCall(location = glGetUniformLocation(normalShader, "normalMap"));
+    //assert(location != -1);
+    //GLCall(glUniform1i(location, 0));
 
-    //texture
-    GLCall(location = glGetUniformLocation(normalShader, "normalMap"));
-    assert(location != -1);
-    GLCall(glUniform1i(location, 0));
+    //// bind textures on corresponding texture units
+    //glActiveTexture(GL_TEXTURE0);
+    //glBindTexture(GL_TEXTURE_2D, normalTexture);
 
-    // bind textures on corresponding texture units
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, normalTexture);
+    //GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
-    //GLCall(glBindTexture(GL_TEXTURE_2D, renderedTexture));
+    // use geometry shader
+    // -------------------
+
+    GLCall(glUseProgram(geometryShader));
+    GLCall(glBindVertexArray(geometryVao));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+
+    //GLCall(glBindVertexArray(geometryVao));
+    //GLCall(glDrawArrays(GL_POINTS, 0, 1));
 
     glutSwapBuffers();
 
@@ -283,6 +295,8 @@ static void CreateVertexBuffer()
     {
         planeVertices.push_back(glm::vec3(allplaneVertices[i], allplaneVertices[i+1], allplaneVertices[i+2]));
         planVerticesTexture.push_back(glm::vec2(allplaneVertices[i + 3], allplaneVertices[i + 4]));
+
+        geometryVertices.push_back(glm::vec3(allplaneVertices[i], allplaneVertices[i + 1], allplaneVertices[i + 2]));
     }
 
     GLCall(glCreateBuffers(1, &planVertexbuffer));
@@ -291,84 +305,21 @@ static void CreateVertexBuffer()
     GLCall(glCreateBuffers(1, &planTexturebuffer));
     GLCall(glNamedBufferStorage(planTexturebuffer, planVerticesTexture.size() * sizeof(planVerticesTexture[0]), &planVerticesTexture[0], 0));
 
-    // cube-map vertices
-    // -----------------
-
-    readSuccess = cubemap.LoadFromFileObj("res/texture/cube.obj", true, outString);
-    assert(readSuccess);
-
-    for (unsigned int i = 0; i < cubemap.NF(); i++)
-    {
-        //vetices
-        cy::TriMesh::TriFace face = cubemap.F(i);
-        cubemapVertices.push_back(glm::vec3(cubemap.V(face.v[0]).x, cubemap.V(face.v[0]).y, cubemap.V(face.v[0]).z));
-        cubemapVertices.push_back(glm::vec3(cubemap.V(face.v[1]).x, cubemap.V(face.v[1]).y, cubemap.V(face.v[1]).z));
-        cubemapVertices.push_back(glm::vec3(cubemap.V(face.v[2]).x, cubemap.V(face.v[2]).y, cubemap.V(face.v[2]).z));
-        
-    }
-
-    GLCall(glCreateBuffers(1, &cubemapVertexbuffer));
-    GLCall(glNamedBufferStorage(cubemapVertexbuffer, cubemapVertices.size() * sizeof(cubemapVertices[0]), &cubemapVertices[0], 0));
-    
-    // quard vertices
+    // geometry vertices
     // -----------------------
-    float quadVertices[] = {
-        // positions   // texCoords
-        -1.0f,  1.0f,  0.0f, 1.0f,
-        -1.0f, -1.0f,  0.0f, 0.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
+    //geometryVertices.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
 
-        -1.0f,  1.0f,  0.0f, 1.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-         1.0f,  1.0f,  1.0f, 1.0f
-    };
-
-    for (unsigned int i = 0; i < 24; i = i + 4)
-    {
-        quardVertices.push_back(glm::vec2(quadVertices[i], quadVertices[i + 1]));
-        quardVerticesTexture.push_back(glm::vec2(quadVertices[i + 2], quadVertices[i + 3]));
-    }
-
-    GLCall(glCreateBuffers(1, &quardVertexbuffer));
-    GLCall(glNamedBufferStorage(quardVertexbuffer, quardVertices.size() * sizeof(quardVertices[0]), &quardVertices[0], 0));
-
-    GLCall(glCreateBuffers(1, &quardTexturebuffer));
-    GLCall(glNamedBufferStorage(quardTexturebuffer, quardVerticesTexture.size() * sizeof(quardVerticesTexture[0]), &quardVerticesTexture[0], 0));
+    GLCall(glCreateBuffers(1, &geometryVertexbuffer));
+    GLCall(glNamedBufferStorage(geometryVertexbuffer, geometryVertices.size() * sizeof(geometryVertices[0]), &geometryVertices[0], 0));
 
 }
 
 
 static void CreateVertexArrayObject()
 {
-
-    // create teapot vertex array object
-    // ---------------------------------
-    GLCall(glCreateVertexArrays(1, &vao));
-
     pos = 0; // glGetAttribLocation(shader, "pos");
     aNormal = 1; // glGetAttribLocation(shader, "aNormal");
     aTexCoord = 2; // layout(location = 2) in vec2 aTexCoord;
-
-    /*bind vertexbuffer to vao*/
-    GLCall(glVertexArrayVertexBuffer(vao, vertexBindingIndex, vertexbuffer, 0, sizeof(glm::vec3))); //sizeof(tm.V(0)
-    GLCall(glVertexArrayAttribFormat(vao, pos, 3, GL_FLOAT, GL_FALSE, 0));                          //sizeof(tm.V(0)
-    GLCall(glVertexArrayAttribBinding(vao, pos, vertexBindingIndex));
-    GLCall(glVertexArrayBindingDivisor(vao, vertexBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(vao, pos));
-
-    /*bind normalbuffer to vao*/
-    GLCall(glVertexArrayVertexBuffer(vao, normalBindingIndex, normalbuffer, 0, sizeof(glm::vec3))); //sizeof(tm.VN(0))
-    GLCall(glVertexArrayAttribFormat(vao, aNormal, 3, GL_FLOAT, GL_FALSE, 0));                      //sizeof(tm.VN(0))
-    GLCall(glVertexArrayAttribBinding(vao, aNormal, normalBindingIndex));
-    GLCall(glVertexArrayBindingDivisor(vao, normalBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(vao, aNormal));
-
-    /*bind texturebuffer to vao*/
-    GLCall(glVertexArrayVertexBuffer(vao, textureBindingIndex, texturebuffer, 0, sizeof(glm::vec3))); //sizeof(tm.VN(0))
-    GLCall(glVertexArrayAttribFormat(vao, aTexCoord, 2, GL_FLOAT, GL_FALSE, 0));                      //sizeof(tm.VN(0))
-    GLCall(glVertexArrayAttribBinding(vao, aTexCoord, textureBindingIndex));
-    GLCall(glVertexArrayBindingDivisor(vao, textureBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(vao, aTexCoord));
 
     // create plan vertex array object
     // -------------------------------
@@ -388,78 +339,21 @@ static void CreateVertexArrayObject()
     GLCall(glVertexArrayBindingDivisor(planeVao, textureBindingIndex, 0));
     GLCall(glEnableVertexArrayAttrib(planeVao, aTexCoord));
 
-    // create cube-map vertex array object
-    // -----------------------------------
-    GLCall(glCreateVertexArrays(1, &cubemapVao));
-
-    //vertex buffer
-    GLCall(glVertexArrayVertexBuffer(cubemapVao, vertexBindingIndex, cubemapVertexbuffer, 0, sizeof(glm::vec3)));
-    GLCall(glVertexArrayAttribFormat(cubemapVao, pos, 3, GL_FLOAT, GL_FALSE, 0));
-    GLCall(glVertexArrayAttribBinding(cubemapVao, pos, vertexBindingIndex));
-    GLCall(glVertexArrayBindingDivisor(cubemapVao, vertexBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(cubemapVao, pos));
-
     // create quard vertex array object
     // -------------------------------
-    GLCall(glCreateVertexArrays(1, &quardVao));
+    GLCall(glCreateVertexArrays(1, &geometryVao));
 
     //vertex buffer
-    GLCall(glVertexArrayVertexBuffer(quardVao, vertexBindingIndex, quardVertexbuffer, 0, sizeof(glm::vec2)));
-    GLCall(glVertexArrayAttribFormat(quardVao, pos, 2, GL_FLOAT, GL_FALSE, 0));
-    GLCall(glVertexArrayAttribBinding(quardVao, pos, vertexBindingIndex));
-    GLCall(glVertexArrayBindingDivisor(quardVao, vertexBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(quardVao, pos));
+    GLCall(glVertexArrayVertexBuffer(geometryVao, vertexBindingIndex, geometryVertexbuffer, 0, sizeof(glm::vec3)));
+    GLCall(glVertexArrayAttribFormat(geometryVao, pos, 3, GL_FLOAT, GL_FALSE, 0));
+    GLCall(glVertexArrayAttribBinding(geometryVao, pos, vertexBindingIndex));
+    GLCall(glVertexArrayBindingDivisor(geometryVao, vertexBindingIndex, 0));
+    GLCall(glEnableVertexArrayAttrib(geometryVao, pos));
 
-    //texture buffer
-    GLCall(glVertexArrayVertexBuffer(quardVao, textureBindingIndex, quardTexturebuffer, 0, sizeof(glm::vec2)));
-    GLCall(glVertexArrayAttribFormat(quardVao, aTexCoord, 2, GL_FLOAT, GL_FALSE, 0));
-    GLCall(glVertexArrayAttribBinding(quardVao, aTexCoord, textureBindingIndex));
-    GLCall(glVertexArrayBindingDivisor(quardVao, textureBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(quardVao, aTexCoord));
 }
 
 
 static void CreateTexture() {
-
-    //// teapot texture
-    //// --------------
-    //// 
-    //// generate diffuse texture
-    //GLCall(glGenTextures(1, &texture1));
-    //GLCall(glBindTexture(GL_TEXTURE_2D, texture1));
-    //std::string file = "res/texture";
-    //std::string diffusePic = tm.M(0).map_Kd.data;
-    //std::string str = "res/texture/" + diffusePic;
-    //const char* fileLocation = str.c_str();
-    //image = decodeTwoSteps(fileLocation, image);//"res/texture/brick.png"
-    //assert(&image);
-    //GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]));
-    //GLCall(glGenerateMipmap(GL_TEXTURE_2D));
-    //
-    //// set texture filtering parameters
-    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
-    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-
-    //// set the texture wrapping parameters
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    //GLCall(glGenTextures(1, &spectexture));
-    //GLCall(glBindTexture(GL_TEXTURE_2D, spectexture));
-
-    //// generate specular texture
-    //specimage = decodeTwoSteps("res/texture/brick.png", specimage);
-    //assert(&specimage);
-    //GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &specimage[0]));
-    //GLCall(glGenerateMipmap(GL_TEXTURE_2D));
-
-    //// set texture filtering parameters
-    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
-    //GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-
-    //// set the texture wrapping parameters
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     // normal texture
     // --------------
@@ -480,34 +374,6 @@ static void CreateTexture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    // cube-map texture
-    // ----------------
-    GLCall(glGenTextures(1, &cubeMapTexture));
-    GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture));
-
-    std::vector<std::string> faces
-    {
-        "res/texture/cubemap_posx.png",
-        "res/texture/cubemap_negx.png",
-        "res/texture/cubemap_posy.png",
-        "res/texture/cubemap_negy.png",
-        "res/texture/cubemap_posz.png",
-        "res/texture/cubemap_negz.png"
-    };
-
-    for (unsigned int i = 0; i < faces.size(); i++) {
-
-        const char* c = faces[i].c_str();
-        std::vector<unsigned char> cubeimage = decodeTwoSteps(c, cubeimage);
-        assert(&specimage);
-        GLCall(glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &cubeimage[0]));
-    }
-
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 }
 
 void Framebuffer() {
@@ -547,25 +413,14 @@ static void LoadShaders() {
     shader = CreateShader(source.VertexSource, source.FragmentSource);
     assert(shader != -1);
 
-    source = ParseShader("res/shaders/Plane.shader");
-    planeShader = CreateShader(source.VertexSource, source.FragmentSource);
-    assert(planeShader != -1);
-
-    source = ParseShader("res/shaders/Screen.shader");
-    quardShader = CreateShader(source.VertexSource, source.FragmentSource);
-    assert(quardShader != -1);
-
     source = ParseShader("res/shaders/NormalMapping.shader");
     normalShader = CreateShader(source.VertexSource, source.FragmentSource);
     assert(normalShader != -1);
 
-    source = ParseShader("res/shaders/CubeMap.shader");
-    cubeMapShader = CreateShader(source.VertexSource, source.FragmentSource);
-    assert(cubeMapShader != -1);
+    ShaderWithGeometryProgramSource sourceWithG = ParseShaderWithGeometry("res/shaders/Geometry.shader");
+    geometryShader = CreateShaderWithGeometry(sourceWithG.VertexSource, sourceWithG.FragmentSource, sourceWithG.GeometrySource);
+    assert(geometryShader != -1);
 
-    source = ParseShader("res/shaders/Sphere.shader");
-    sphereShader = CreateShader(source.VertexSource, source.FragmentSource);
-    assert(sphereShader != -1);
 
 }
 
@@ -601,7 +456,7 @@ int main(int argc, char** argv)
 
     CreateVertexArrayObject();
 
-    Framebuffer();
+    //Framebuffer();
     
     CreateTexture();
 
@@ -740,6 +595,92 @@ static unsigned int CreateShader(const std::string& vertexShader, const std::str
 
     glDeleteShader(vs);
     glDeleteShader(fs);
+
+    return program;
+}
+
+static ShaderWithGeometryProgramSource ParseShaderWithGeometry(const std::string& filepath)
+{
+
+    std::ifstream stream(filepath);
+
+    enum class ShaderType
+    {
+        NONE = -1,
+        VERTEX = 0,
+        FRAGMENT = 1,
+        GEOMETRY = 2
+    };
+
+    std::string line;
+    std::stringstream ss[3];
+    ShaderType type = ShaderType::NONE;
+    while (getline(stream, line))
+    {
+
+        if (line.find("#shader") != std::string::npos)
+        {
+
+            if (line.find("vertex") != std::string::npos)
+                type = ShaderType::VERTEX;
+            else if (line.find("fragment") != std::string::npos)
+                type = ShaderType::FRAGMENT;
+            else if (line.find("geometry") != std::string::npos)
+                type = ShaderType::GEOMETRY;
+        }
+        else
+        {
+
+            ss[(int)type] << line << '\n';
+        }
+    }
+
+    return { ss[0].str(), ss[1].str(), ss[2].str() };
+}
+
+static unsigned int CompileShaderWithGeometry(unsigned int type, const std::string& source)
+{
+
+    unsigned int id = glCreateShader(type);
+    const char* src = source.c_str();
+    glShaderSource(id, 1, &src, nullptr);
+    glCompileShader(id);
+
+    int result;
+    glGetShaderiv(id, GL_COMPILE_STATUS, &result);
+    if (result == GL_FALSE)
+    {
+        int length;
+        glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
+        char* message = (char*)alloca(length * sizeof(char));
+        glGetShaderInfoLog(id, length, &length, message);
+        std::cout << "Failed to compile" << (type == GL_VERTEX_SHADER ? "verttex" : type == GL_VERTEX_SHADER ? "fragment" : "geometry")
+            << " shader!" << std::endl;
+        std::cout << message << std::endl;
+        glDeleteShader(id);
+        return 0;
+    }
+
+    return id;
+}
+
+static unsigned int CreateShaderWithGeometry(const std::string& vertexShader, const std::string& fragmentShader, const std::string& geometryShader)
+{
+
+    unsigned int program = glCreateProgram();
+    unsigned int vs = CompileShaderWithGeometry(GL_VERTEX_SHADER, vertexShader);
+    unsigned int fs = CompileShaderWithGeometry(GL_FRAGMENT_SHADER, fragmentShader);
+    unsigned int gs = CompileShaderWithGeometry(GL_GEOMETRY_SHADER, geometryShader);
+
+    glAttachShader(program, vs);
+    glAttachShader(program, fs);
+    glAttachShader(program, gs);
+    glLinkProgram(program);
+    glValidateProgram(program);
+
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+    glDeleteShader(gs);
 
     return program;
 }
