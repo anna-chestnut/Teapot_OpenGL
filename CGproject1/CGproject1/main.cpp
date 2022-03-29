@@ -125,6 +125,8 @@ unsigned int VBO, VAO;
 
 std::string objName;    
 
+bool showTriangle = false;
+
 struct ShaderProgramSource
 {
 
@@ -209,26 +211,27 @@ void myDisplay()
     // use geometry shader
     // -------------------
 
-    GLCall(glUseProgram(geometryShader));
+    if (showTriangle) {
+        GLCall(glUseProgram(geometryShader));
 
-    GLCall(modelId = glGetUniformLocation(geometryShader, "model"));
-    assert(modelId != -1);
-    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
+        GLCall(modelId = glGetUniformLocation(geometryShader, "model"));
+        assert(modelId != -1);
+        GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
 
-    GLCall(viewId = glGetUniformLocation(geometryShader, "view"));
-    assert(viewId != -1);
-    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
+        GLCall(viewId = glGetUniformLocation(geometryShader, "view"));
+        assert(viewId != -1);
+        GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
 
-    GLCall(proId = glGetUniformLocation(geometryShader, "projection"));
-    assert(proId != -1);
-    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
+        GLCall(proId = glGetUniformLocation(geometryShader, "projection"));
+        assert(proId != -1);
+        GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
-    GLCall(glBindVertexArray(VAO));
-    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+        GLCall(glBindVertexArray(VAO));
+        GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
-    //GLCall(glBindVertexArray(geometryVao));
-    //GLCall(glDrawArrays(GL_POINTS, 0, 4));
-
+        //GLCall(glBindVertexArray(geometryVao));
+        //GLCall(glDrawArrays(GL_POINTS, 0, 4));
+    }
     glutSwapBuffers();
 
 }
@@ -791,7 +794,10 @@ void myKeyboard(unsigned char key, int x, int y)
     case 27: //ESC keycode
         glutDestroyWindow(glutGetWindow());
         break;
-
+    case 32: //spacebar
+        showTriangle = !showTriangle;
+        glutPostRedisplay();
+        break;
     }
 }
 void mySpecialKeyboard(int key, int x, int y)
