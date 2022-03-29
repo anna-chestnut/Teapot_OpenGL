@@ -129,17 +129,17 @@ bool showTriangle = false;
 
 struct ShaderProgramSource
 {
-
     std::string VertexSource;
     std::string FragmentSource;
 };
 
 struct ShaderWithGeometryProgramSource
 {
-
     std::string VertexSource;
     std::string FragmentSource;
     std::string GeometrySource;
+    std::string TessControlSource;
+    std::string TessEvaluationSource;
 };
 
 static void GLClearError();
@@ -151,7 +151,7 @@ static unsigned int CompileShader(unsigned int type, const std::string& source);
 static unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader);
 static ShaderWithGeometryProgramSource ParseShaderWithGeometry(const std::string& filepath);
 static unsigned int CompileShaderWithGeometry(unsigned int type, const std::string& source);
-static unsigned int CreateShaderWithGeometry(const std::string& vertexShader, const std::string& fragmentShader, const std::string& geometryShader);
+static unsigned int CreateShaderWithGeometry(const std::string& vertexShader, const std::string& fragmentShader, const std::string& geometryShader, const std::string& tessContShader, const std::string& tessEvalShader);
 void ReCompileShader();
 void myIdle();
 void myKeyboard(unsigned char key, int x, int y);
@@ -227,7 +227,9 @@ void myDisplay()
         GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
         GLCall(glBindVertexArray(VAO));
-        GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+        GLCall(glPatchParameteri(GL_PATCH_VERTICES, 6));
+        GLCall(glDrawArrays(GL_PATCHES, 0, 6));
+        //GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
         //GLCall(glBindVertexArray(geometryVao));
         //GLCall(glDrawArrays(GL_POINTS, 0, 4));
@@ -445,7 +447,7 @@ static void LoadShaders() {
     assert(normalShader != -1);
 
     ShaderWithGeometryProgramSource sourceWithG = ParseShaderWithGeometry("res/shaders/Geometry.shader");
-    geometryShader = CreateShaderWithGeometry(sourceWithG.VertexSource, sourceWithG.FragmentSource, sourceWithG.GeometrySource);
+    geometryShader = CreateShaderWithGeometry(sourceWithG.VertexSource, sourceWithG.FragmentSource, sourceWithG.GeometrySource, sourceWithG.TessControlSource, sourceWithG.TessEvaluationSource);
     assert(geometryShader != -1);
 
 
@@ -666,11 +668,13 @@ static ShaderWithGeometryProgramSource ParseShaderWithGeometry(const std::string
         NONE = -1,
         VERTEX = 0,
         FRAGMENT = 1,
-        GEOMETRY = 2
+        GEOMETRY = 2,
+        TESSCONTROL = 3,
+        TESSEVALUATION = 4
     };
 
     std::string line;
-    std::stringstream ss[3];
+    std::stringstream ss[5];
     ShaderType type = ShaderType::NONE;
     while (getline(stream, line))
     {
@@ -684,6 +688,10 @@ static ShaderWithGeometryProgramSource ParseShaderWithGeometry(const std::string
                 type = ShaderType::FRAGMENT;
             else if (line.find("geometry") != std::string::npos)
                 type = ShaderType::GEOMETRY;
+            else if (line.find("tesscontrol") != std::string::npos)
+                type = ShaderType::TESSCONTROL;
+            else if (line.find("tessevaluation") != std::string::npos)
+                type = ShaderType::TESSEVALUATION;
         }
         else
         {
@@ -692,7 +700,7 @@ static ShaderWithGeometryProgramSource ParseShaderWithGeometry(const std::string
         }
     }
 
-    return { ss[0].str(), ss[1].str(), ss[2].str() };
+    return { ss[0].str(), ss[1].str(), ss[2].str(), ss[3].str(), ss[4].str() };
 }
 
 static unsigned int CompileShaderWithGeometry(unsigned int type, const std::string& source)
@@ -711,7 +719,30 @@ static unsigned int CompileShaderWithGeometry(unsigned int type, const std::stri
         glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
         char* message = (char*)alloca(length * sizeof(char));
         glGetShaderInfoLog(id, length, &length, message);
-        std::cout << "Failed to compile" << (type == GL_VERTEX_SHADER ? "verttex" : type == GL_VERTEX_SHADER ? "fragment" : "geometry")
+        std::string s = "";
+        switch (type)
+        {
+        case GL_VERTEX_SHADER:
+            s = "verttex";
+            break;
+        case GL_FRAGMENT_SHADER:
+            s = "fragment";
+            break;
+        case GL_GEOMETRY_SHADER:
+            s = "tess control";
+            break;
+        case GL_TESS_CONTROL_SHADER:
+            s = "tess control";
+            break;
+        case GL_TESS_EVALUATION_SHADER:
+            s = "tess evaluation";
+            break;
+        default:
+            break;
+        };
+
+        std::cout << "Failed to compile " <<  s
+            
             << " shader!" << std::endl;
         std::cout << message << std::endl;
         glDeleteShader(id);
@@ -721,23 +752,29 @@ static unsigned int CompileShaderWithGeometry(unsigned int type, const std::stri
     return id;
 }
 
-static unsigned int CreateShaderWithGeometry(const std::string& vertexShader, const std::string& fragmentShader, const std::string& geometryShader)
+static unsigned int CreateShaderWithGeometry(const std::string& vertexShader, const std::string& fragmentShader, const std::string& geometryShader, const std::string& tessContShader, const std::string& tessEvalShader)
 {
 
     unsigned int program = glCreateProgram();
     unsigned int vs = CompileShaderWithGeometry(GL_VERTEX_SHADER, vertexShader);
     unsigned int fs = CompileShaderWithGeometry(GL_FRAGMENT_SHADER, fragmentShader);
     unsigned int gs = CompileShaderWithGeometry(GL_GEOMETRY_SHADER, geometryShader);
+    unsigned int tsc = CompileShaderWithGeometry(GL_TESS_CONTROL_SHADER, tessContShader);
+    unsigned int tse = CompileShaderWithGeometry(GL_TESS_EVALUATION_SHADER, tessEvalShader);
 
     glAttachShader(program, vs);
     glAttachShader(program, fs);
     glAttachShader(program, gs);
+    glAttachShader(program, tsc);
+    glAttachShader(program, tse);
     glLinkProgram(program);
     glValidateProgram(program);
 
     glDeleteShader(vs);
     glDeleteShader(fs);
     glDeleteShader(gs);
+    glDeleteShader(tsc);
+    glDeleteShader(tse);
 
     return program;
 }

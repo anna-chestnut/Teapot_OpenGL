@@ -42,23 +42,6 @@ in VS_OUT{
 
 out vec3 fColor;
 
-void build_house(vec4 position)
-{
-    fColor = gs_in[0].color; // gs_in[0] since there's only one input vertex
-    gl_Position = position + vec4(-0.2, -0.2, 0.0, 0.0); // 1:bottom-left   
-    EmitVertex();
-    gl_Position = position + vec4(0.2, -0.2, 0.0, 0.0); // 2:bottom-right
-    EmitVertex();
-    gl_Position = position + vec4(-0.2, 0.2, 0.0, 0.0); // 3:top-left
-    EmitVertex();
-    gl_Position = position + vec4(0.2, 0.2, 0.0, 0.0); // 4:top-right
-    EmitVertex();
-    gl_Position = position + vec4(0.0, 0.4, 0.0, 0.0); // 5:top
-    fColor = vec3(1.0, 1.0, 1.0);
-    EmitVertex();
-    EndPrimitive();
-}
-
 void main() {
     //build_house(gl_in[0].gl_Position);
     fColor = vec3(0,1,0);
@@ -73,4 +56,51 @@ void main() {
     EmitVertex();
     EndPrimitive();
 
+}
+
+#shader tesscontrol
+#version 410 core
+
+layout(vertices = 4) out;
+
+//uniform mat4 model;
+//uniform mat4 view;
+
+in vec3 myInData[];
+out vec3 myData[];
+
+void main()
+{
+    gl_TessLevelOuter[0] = 8.0;
+    gl_TessLevelOuter[1] = 8.0;
+    gl_TessLevelOuter[2] = 8.0;
+    //gl_TessLevelOuter[3] = 8.0;
+
+    gl_TessLevelInner[0] = 8.0;
+    //gl_TessLevelInner[1] = 8.0;
+
+    gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+    //TextureCoord[gl_InvocationID] = TexCoord[gl_InvocationID];
+
+}
+
+
+#shader tessevaluation
+#version 410 core
+layout(triangles, equal_spacing, ccw) in;
+
+uniform sampler2D heightMap;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+in vec2 TextureCoord[];
+
+out float Height;
+
+void main()
+{
+    gl_Position = (gl_TessCoord.x * gl_in[0].gl_Position +
+        gl_TessCoord.y * gl_in[1].gl_Position +
+        gl_TessCoord.z * gl_in[2].gl_Position);
 }
