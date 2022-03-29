@@ -210,11 +210,24 @@ void myDisplay()
     // -------------------
 
     GLCall(glUseProgram(geometryShader));
+
+    GLCall(modelId = glGetUniformLocation(geometryShader, "model"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
+
+    GLCall(viewId = glGetUniformLocation(geometryShader, "view"));
+    assert(viewId != -1);
+    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
+
+    GLCall(proId = glGetUniformLocation(geometryShader, "projection"));
+    assert(proId != -1);
+    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
+
     GLCall(glBindVertexArray(VAO));
-    //GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
     //GLCall(glBindVertexArray(geometryVao));
-    GLCall(glDrawArrays(GL_POINTS, 0, 4));
+    //GLCall(glDrawArrays(GL_POINTS, 0, 4));
 
     glutSwapBuffers();
 
@@ -438,10 +451,19 @@ static void LoadShaders() {
 void CreateBufferTest()
 {
     float points[] = {
-        -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // top-left
-         0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // top-right
-         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // bottom-right
-        -0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // bottom-left
+        //-0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // top-left
+        // 0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // top-right
+        // 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // bottom-right
+        //-0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // bottom-left
+
+         // positions          // texture coords 
+        - 20.0f, 20.0f,  0.0f,  0.0f, 0.0f,
+        -20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
+         20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
+
+        -20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
+         20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
+         20.0f, -20.0, 0.0f,  1.0f, 1.0f
     };
     
     glGenBuffers(1, &VBO);

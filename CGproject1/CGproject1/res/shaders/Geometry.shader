@@ -4,6 +4,10 @@
 layout(location = 0) in vec2 aPos;
 layout(location = 1) in vec3 aColor;
 
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
 out VS_OUT{
     vec3 color;
 } vs_out;
@@ -11,7 +15,8 @@ out VS_OUT{
 void main()
 {
     vs_out.color = aColor;
-    gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);
+    //gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);
+    gl_Position = projection * view * model * vec4(aPos.x, aPos.y, 0.1, 1.0);
 }
 
 #shader fragment
@@ -28,8 +33,8 @@ void main()
 #shader geometry
 #version 330 core
 
-layout(points) in;
-layout(line_strip, max_vertices = 5) out;
+layout(triangles) in;
+layout(line_strip, max_vertices = 6) out;
 
 in VS_OUT{
     vec3 color;
@@ -55,5 +60,17 @@ void build_house(vec4 position)
 }
 
 void main() {
-    build_house(gl_in[0].gl_Position);
+    //build_house(gl_in[0].gl_Position);
+    fColor = vec3(0,1,0);
+
+    gl_Position = gl_in[0].gl_Position;
+    EmitVertex();
+    gl_Position = gl_in[1].gl_Position;
+    EmitVertex();
+    gl_Position = gl_in[2].gl_Position;
+    EmitVertex();
+    gl_Position = gl_in[0].gl_Position;
+    EmitVertex();
+    EndPrimitive();
+
 }
