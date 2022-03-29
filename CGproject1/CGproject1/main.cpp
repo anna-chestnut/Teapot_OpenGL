@@ -121,6 +121,7 @@ std::vector<unsigned char> image; //the raw pixels
 std::vector<unsigned char> specimage; //the raw pixels
 
 unsigned width, height;
+unsigned int VBO, VAO;
 
 std::string objName;    
 
@@ -171,49 +172,49 @@ void myDisplay()
     GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
     glClearColor(0, 0, 0, 0);
 
-    //GLCall(glUseProgram(normalShader));
-    //GLCall(glBindVertexArray(planeVao));
-    ///*MVP into vertex shader*/
-    //glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
-    //glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
-    //glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
-    ////MVP
-    //GLCall(GLuint modelId = glGetUniformLocation(normalShader, "model"));
-    //assert(modelId != -1);
-    //GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
+    GLCall(glUseProgram(normalShader));
+    GLCall(glBindVertexArray(planeVao));
+    /*MVP into vertex shader*/
+    glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
+    glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
+    //MVP
+    GLCall(GLuint modelId = glGetUniformLocation(normalShader, "model"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
 
-    //GLCall(GLuint viewId = glGetUniformLocation(normalShader, "view"));
-    //assert(viewId != -1);
-    //GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
+    GLCall(GLuint viewId = glGetUniformLocation(normalShader, "view"));
+    assert(viewId != -1);
+    GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
 
-    //GLCall(GLuint proId = glGetUniformLocation(normalShader, "projection"));
-    //assert(proId != -1);
-    //GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
+    GLCall(GLuint proId = glGetUniformLocation(normalShader, "projection"));
+    assert(proId != -1);
+    GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
-    //GLCall(GLuint location = glGetUniformLocation(normalShader, "lightPos"));
-    //assert(location != -1);
-    //GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+    GLCall(GLuint location = glGetUniformLocation(normalShader, "lightPos"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
 
-    ////texture
-    //GLCall(location = glGetUniformLocation(normalShader, "normalMap"));
-    //assert(location != -1);
-    //GLCall(glUniform1i(location, 0));
+    //texture
+    GLCall(location = glGetUniformLocation(normalShader, "normalMap"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 0));
 
-    //// bind textures on corresponding texture units
-    //glActiveTexture(GL_TEXTURE0);
-    //glBindTexture(GL_TEXTURE_2D, normalTexture);
+    // bind textures on corresponding texture units
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, normalTexture);
 
-    //GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
     // use geometry shader
     // -------------------
 
     GLCall(glUseProgram(geometryShader));
-    GLCall(glBindVertexArray(geometryVao));
-    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+    GLCall(glBindVertexArray(VAO));
+    //GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
     //GLCall(glBindVertexArray(geometryVao));
-    //GLCall(glDrawArrays(GL_POINTS, 0, 1));
+    GLCall(glDrawArrays(GL_POINTS, 0, 4));
 
     glutSwapBuffers();
 
@@ -280,14 +281,24 @@ static void CreateVertexBuffer()
     //    -20.0f, -0.5f, -20.0f,  0.0f, 1.0f,
     //     20.0f, -0.5f, -20.0f,  1.0f, 1.0f
     //};
+    //float allplaneVertices[] = {
+    //    // positions          // texture coords 
+    //     20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
+    //    -20.0f, 20.0f,  0.0f,  0.0f, 0.0f,
+    //    -20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
+
+    //     20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
+    //    -20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
+    //     20.0f, -20.0, 0.0f,  1.0f, 1.0f
+    //};
     float allplaneVertices[] = {
         // positions          // texture coords 
-         20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
         -20.0f, 20.0f,  0.0f,  0.0f, 0.0f,
         -20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
-
          20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
+
         -20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
+         20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
          20.0f, -20.0, 0.0f,  1.0f, 1.0f
     };
 
@@ -424,6 +435,26 @@ static void LoadShaders() {
 
 }
 
+void CreateBufferTest()
+{
+    float points[] = {
+        -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // top-left
+         0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // top-right
+         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // bottom-right
+        -0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // bottom-left
+    };
+    
+    glGenBuffers(1, &VBO);
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(points), &points, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
+    glBindVertexArray(0);
+}
 
 int main(int argc, char** argv)
 {
@@ -453,6 +484,7 @@ int main(int argc, char** argv)
 
 
     CreateVertexBuffer();
+    CreateBufferTest();
 
     CreateVertexArrayObject();
 
