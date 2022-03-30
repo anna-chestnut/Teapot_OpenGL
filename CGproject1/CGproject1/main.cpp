@@ -206,7 +206,7 @@ void myDisplay()
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, normalTexture);
 
-    //GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
     // use geometry shader
     // -------------------
@@ -415,9 +415,9 @@ static void CreateTexture() {
     GLCall(glBindTexture(GL_TEXTURE_2D, displacementTexture));
 
     // generate specular texture
-    specimage = decodeTwoSteps("res/texture/teapot_disp.png", specimage);
-    assert(&specimage);
-    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &specimage[0]));
+    image = decodeTwoSteps("res/texture/teapot_disp.png", image);
+    assert(&image);
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]));
     GLCall(glGenerateMipmap(GL_TEXTURE_2D));
 
     // set texture filtering parameters

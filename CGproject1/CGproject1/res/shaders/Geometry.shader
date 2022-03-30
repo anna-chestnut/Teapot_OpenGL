@@ -18,16 +18,14 @@ void main()
 #version 330 core
 out vec4 FragColor;
 
-in vec3 fColor;
-
 in float Height;
 
 void main()
 {
     //FragColor = vec4(fColor, 1.0);
 
-    float h = (Height + 16) / 64.0f;
-    FragColor = vec4(h, h, h, 1.0);
+    float h = (Height) / 10.0f;
+    FragColor = vec4(h, 0.0, 0.0, 1.0);
 }
 
 #shader geometry
@@ -36,12 +34,10 @@ void main()
 layout(triangles) in;
 layout(line_strip, max_vertices = 3) out;
 
-out vec3 fColor;
 
 void main() {
     //build_house(gl_in[0].gl_Position);
-    fColor = vec3(0,1,0);
-
+    
     gl_Position = gl_in[0].gl_Position;
     EmitVertex();
     gl_Position = gl_in[1].gl_Position;
@@ -126,9 +122,14 @@ void main()
     //vec2 tc2 = gl_TessCoord.z * tcTexCoord[2];
     //teTexCoord = tc0 + tc1 + tc2;
 
-    Height = texture(heightMap, texCoord).y * 9.0;// * 64.0 - 16.0
-    float h = texture(heightMap, texCoord).x * 64.0 - 16.0;
+    vec3 normal = texture(heightMap, texCoord).rgb;
+    normal = normalize(normal * 2.0 - 1.0);
+
+    //heightColor = texture(heightMap, texCoord).rgb;
+
+    Height = texture(heightMap, texCoord).z * 10.0;// * 64.0 - 16.0
+    //float h = texture(heightMap, texCoord).x * 64.0 - 16.0;
     vec4 inter = interpolate(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position, gl_in[3].gl_Position);
-    vec4 newPos = vec4(inter.x, inter.y, Height, 1.0);
+    vec4 newPos = vec4(inter.x, inter.y, inter.z + Height, 1.0);
     gl_Position = projection * view * model * newPos;
 }
