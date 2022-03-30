@@ -197,6 +197,9 @@ void myDisplay()
     assert(location != -1);
     GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
 
+    GLCall(location = glGetUniformLocation(normalShader, "viewPos"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
     //texture
     GLCall(location = glGetUniformLocation(normalShader, "normalMap"));
     assert(location != -1);
@@ -206,7 +209,7 @@ void myDisplay()
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, normalTexture);
 
-    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+    //GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
     // use geometry shader
     // -------------------
@@ -232,9 +235,25 @@ void myDisplay()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, displacementTexture);
 
+
+        //GLCall(GLuint location = glGetUniformLocation(geometryShader, "lightPos"));
+        //assert(location != -1);
+        //GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+
+        //GLCall(location = glGetUniformLocation(geometryShader, "viewPos"));
+        //assert(location != -1);
+        //GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
+        //texture
+        GLCall(location = glGetUniformLocation(geometryShader, "normalMap"));
+        assert(location != -1);
+        GLCall(glUniform1i(location, 0));
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, normalTexture);
+
         GLCall(glBindVertexArray(VAO));
         GLCall(glPatchParameteri(GL_PATCH_VERTICES, 4));
         GLCall(glDrawArrays(GL_PATCHES, 0, 4));
+
         //GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
         //GLCall(glBindVertexArray(geometryVao));

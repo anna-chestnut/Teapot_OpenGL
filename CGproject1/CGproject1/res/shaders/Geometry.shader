@@ -14,41 +14,6 @@ void main()
     TexCoord = aTex;
 }
 
-#shader fragment
-#version 330 core
-out vec4 FragColor;
-
-in float Height;
-
-void main()
-{
-    //FragColor = vec4(fColor, 1.0);
-
-    float h = (Height) / 10.0f;
-    FragColor = vec4(h, 0.0, 0.0, 1.0);
-}
-
-#shader geometry
-#version 330 core
-
-layout(triangles) in;
-layout(line_strip, max_vertices = 3) out;
-
-
-void main() {
-    //build_house(gl_in[0].gl_Position);
-    
-    gl_Position = gl_in[0].gl_Position;
-    EmitVertex();
-    gl_Position = gl_in[1].gl_Position;
-    EmitVertex();
-    gl_Position = gl_in[2].gl_Position;
-    EmitVertex();
-    gl_Position = gl_in[0].gl_Position;
-    EmitVertex();
-    EndPrimitive();
-
-}
 
 #shader tesscontrol
 #version 410 core
@@ -90,6 +55,9 @@ uniform mat4 projection;
 in vec2 TextureCoord[];
 
 out float Height;
+out vec3 tePosition;
+
+out vec2 teTexCoord;
 
 vec4 interpolate(vec4 v0, vec4 v1, vec4 v2, vec4 v3) {
 
@@ -115,21 +83,74 @@ void main()
 
     vec2 t0 = (t01 - t00) * u + t00;
     vec2 t1 = (t11 - t10) * u + t10;
-    vec2 texCoord = (t1 - t0) * v + t0;
+    teTexCoord = (t1 - t0) * v + t0;
 
-    //vec2 tc0 = gl_TessCoord.x * tcTexCoord[0];
-    //vec2 tc1 = gl_TessCoord.y * tcTexCoord[1];
-    //vec2 tc2 = gl_TessCoord.z * tcTexCoord[2];
-    //teTexCoord = tc0 + tc1 + tc2;
-
-    vec3 normal = texture(heightMap, texCoord).rgb;
-    normal = normalize(normal * 2.0 - 1.0);
+    //vec3 normal = texture(heightMap, texCoord).rgb;
+    //normal = normalize(normal * 2.0 - 1.0);
 
     //heightColor = texture(heightMap, texCoord).rgb;
 
-    Height = texture(heightMap, texCoord).z * 10.0;// * 64.0 - 16.0
-    //float h = texture(heightMap, texCoord).x * 64.0 - 16.0;
+    Height = texture(heightMap, teTexCoord).z * 10.0;// * 64.0 - 16.0
     vec4 inter = interpolate(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position, gl_in[3].gl_Position);
     vec4 newPos = vec4(inter.x, inter.y, inter.z + Height, 1.0);
     gl_Position = projection * view * model * newPos;
+    tePosition = vec3(model * newPos).xyz;
+}
+
+
+#shader geometry
+#version 330 core
+
+layout(triangles) in;
+layout(line_strip, max_vertices = 3) out;
+
+in vec3 tePosition[3];
+
+in vec2 teTexCoord[3];
+out vec2 gTexCoord;
+
+void main() {
+    //build_house(gl_in[0].gl_Position);
+
+    gl_Position = gl_in[0].gl_Position;
+    gTexCoord = teTexCoord[0];
+    EmitVertex();
+
+    gl_Position = gl_in[1].gl_Position;
+    gTexCoord = teTexCoord[1];
+    EmitVertex();
+
+    gl_Position = gl_in[2].gl_Position;
+    gTexCoord = teTexCoord[2];
+    EmitVertex();
+
+    //gl_Position = gl_in[0].gl_Position;
+    //gTexCoord = teTexCoord[0];
+    //EmitVertex();
+
+    EndPrimitive();
+
+}
+
+
+#shader fragment
+#version 330 core
+out vec4 FragColor;
+
+//in float Height;
+in vec2 gTexCoord;
+
+uniform sampler2D normalMap;
+
+void main()
+{
+    //FragColor = vec4(fColor, 1.0);
+    vec3 normal = texture(normalMap, gTexCoord).rgb;
+    // transform normal vector to range [-1,1]
+    normal = normalize(normal * 2.0 - 1.0);  // this normal is in tangent space
+
+    FragColor = vec4(normal, 1.0);
+
+    /*float h = (Height) / 10.0f;
+    FragColor = vec4(h, 0.0, 0.0, 1.0);*/
 }
