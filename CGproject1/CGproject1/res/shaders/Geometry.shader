@@ -25,9 +25,14 @@ out vec4 FragColor;
 
 in vec3 fColor;
 
+in float Height;
+
 void main()
 {
-    FragColor = vec4(fColor, 1.0);
+    //FragColor = vec4(fColor, 1.0);
+
+    float h = (Height + 16) / 64.0f;
+    FragColor = vec4(h, h, h, 1.0);
 }
 
 #shader geometry
@@ -113,5 +118,19 @@ void main()
         gl_TessCoord.y * gl_in[1].gl_Position +
         gl_TessCoord.z * gl_in[2].gl_Position);*/
 
-    gl_Position = interpolate(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position, gl_in[3].gl_Position);
+    float u = gl_TessCoord.x;
+    float v = gl_TessCoord.y;
+
+    vec2 t00 = TextureCoord[0];
+    vec2 t01 = TextureCoord[1];
+    vec2 t10 = TextureCoord[2];
+    vec2 t11 = TextureCoord[3];
+
+    vec2 t0 = (t01 - t00) * u + t00;
+    vec2 t1 = (t11 - t10) * u + t10;
+    vec2 texCoord = (t1 - t0) * v + t0;
+
+    Height = texture(heightMap, texCoord).y * 64.0 - 16.0;
+
+    gl_Position = interpolate(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position, gl_in[3].gl_Position) * Height;
 }

@@ -55,8 +55,8 @@ GLuint cubemapVao;
 GLuint texture1;
 GLuint spectexture;
 GLuint renderedTexture; 
-GLuint cubeMapTexture;
 GLuint normalTexture;
+GLuint displacementTexture;
 GLint originFB;
 
 glm::mat4 transform = glm::mat4(1.0f);
@@ -226,6 +226,12 @@ void myDisplay()
         assert(proId != -1);
         GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
+        /*GLCall(location = glGetUniformLocation(geometryShader, "heightMap"));
+        assert(location != -1);
+        GLCall(glUniform1i(location, 1));
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, displacementTexture);*/
+
         GLCall(glBindVertexArray(VAO));
         GLCall(glPatchParameteri(GL_PATCH_VERTICES, 4));
         GLCall(glDrawArrays(GL_PATCHES, 0, 4));
@@ -391,6 +397,25 @@ static void CreateTexture() {
 
     // generate specular texture
     specimage = decodeTwoSteps("res/texture/teapot_normal.png", specimage);
+    assert(&specimage);
+    GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &specimage[0]));
+    GLCall(glGenerateMipmap(GL_TEXTURE_2D));
+
+    // set texture filtering parameters
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+    GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    // displacement texture
+    // --------------
+    GLCall(glGenTextures(1, &displacementTexture));
+    GLCall(glBindTexture(GL_TEXTURE_2D, displacementTexture));
+
+    // generate specular texture
+    specimage = decodeTwoSteps("res/texture/teapot_disp.png", specimage);
     assert(&specimage);
     GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &specimage[0]));
     GLCall(glGenerateMipmap(GL_TEXTURE_2D));
