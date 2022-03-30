@@ -2,21 +2,16 @@
 #version 330 core
 
 layout(location = 0) in vec2 aPos;
-layout(location = 1) in vec3 aColor;
+layout(location = 1) in vec2 aTex;
 
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
-
-out VS_OUT{
-    vec3 color;
-} vs_out;
+out vec2 TexCoord;
 
 void main()
 {
-    vs_out.color = aColor;
+    //vs_out.color = aColor;
     //gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);
-    gl_Position = projection * view * model * vec4(aPos.x, aPos.y, 0.1, 1.0);
+    gl_Position = vec4(aPos.x, aPos.y, 0.1, 1.0);
+    TexCoord = aTex;
 }
 
 #shader fragment
@@ -40,10 +35,6 @@ void main()
 
 layout(triangles) in;
 layout(line_strip, max_vertices = 3) out;
-
-in VS_OUT{
-    vec3 color;
-} gs_in[];
 
 out vec3 fColor;
 
@@ -71,12 +62,12 @@ layout(vertices = 4) out;
 //uniform mat4 model;
 //uniform mat4 view;
 
-in vec3 myInData[];
-out vec3 myData[];
+in vec2 TexCoord[];
+out vec2 TextureCoord[];
 
 void main()
 {
-    float num = 8.0;
+    float num = 50.0;
     gl_TessLevelOuter[0] = num;
     gl_TessLevelOuter[1] = num;
     gl_TessLevelOuter[2] = num;
@@ -86,7 +77,7 @@ void main()
     gl_TessLevelInner[1] = num;
 
     gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
-    //TextureCoord[gl_InvocationID] = TexCoord[gl_InvocationID];
+    TextureCoord[gl_InvocationID] = TexCoord[gl_InvocationID];
 
 }
 
@@ -121,8 +112,8 @@ void main()
     float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
 
-    vec2 t00 = TextureCoord[0];
-    vec2 t01 = TextureCoord[1];
+    vec2 t00 = TextureCoord[1];
+    vec2 t01 = TextureCoord[0];
     vec2 t10 = TextureCoord[2];
     vec2 t11 = TextureCoord[3];
 
@@ -130,7 +121,14 @@ void main()
     vec2 t1 = (t11 - t10) * u + t10;
     vec2 texCoord = (t1 - t0) * v + t0;
 
-    Height = texture(heightMap, texCoord).y * 64.0 - 16.0;
+    //vec2 tc0 = gl_TessCoord.x * tcTexCoord[0];
+    //vec2 tc1 = gl_TessCoord.y * tcTexCoord[1];
+    //vec2 tc2 = gl_TessCoord.z * tcTexCoord[2];
+    //teTexCoord = tc0 + tc1 + tc2;
 
-    gl_Position = interpolate(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position, gl_in[3].gl_Position) * Height;
+    Height = texture(heightMap, texCoord).y * 9.0;// * 64.0 - 16.0
+    float h = texture(heightMap, texCoord).x * 64.0 - 16.0;
+    vec4 inter = interpolate(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position, gl_in[3].gl_Position);
+    vec4 newPos = vec4(inter.x, inter.y, Height, 1.0);
+    gl_Position = projection * view * model * newPos;
 }

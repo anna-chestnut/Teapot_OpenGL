@@ -206,7 +206,7 @@ void myDisplay()
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, normalTexture);
 
-    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+    //GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
     // use geometry shader
     // -------------------
@@ -226,11 +226,11 @@ void myDisplay()
         assert(proId != -1);
         GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
-        /*GLCall(location = glGetUniformLocation(geometryShader, "heightMap"));
+        GLCall(location = glGetUniformLocation(geometryShader, "heightMap"));
         assert(location != -1);
         GLCall(glUniform1i(location, 1));
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, displacementTexture);*/
+        glBindTexture(GL_TEXTURE_2D, displacementTexture);
 
         GLCall(glBindVertexArray(VAO));
         GLCall(glPatchParameteri(GL_PATCH_VERTICES, 4));
@@ -487,10 +487,10 @@ void CreateBufferTest()
         //-0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // bottom-left
 
          // positions          // texture coords 
-        - 20.0f, 20.0f,  0.0f,  0.0f, 0.0f,
-        -20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
-         20.0f, -20.0, 0.0f,  1.0f, 1.0f,
-         20.0f, 20.0f,  0.0f,  1.0f, 0.0f
+        - 20.0f, 20.0f,  0.0f,  0.0f, 1.0f,
+        -20.0f, -20.0f, 0.0f,  0.0f, 0.0f,
+         20.0f, -20.0, 0.0f,  1.0f, 0.0f,
+         20.0f, 20.0f,  0.0f,  1.0f, 1.0f
 
         //-20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
          //20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
@@ -504,7 +504,7 @@ void CreateBufferTest()
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glBindVertexArray(0);
 }
 
