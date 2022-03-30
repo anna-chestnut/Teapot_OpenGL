@@ -227,8 +227,8 @@ void myDisplay()
         GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
         GLCall(glBindVertexArray(VAO));
-        GLCall(glPatchParameteri(GL_PATCH_VERTICES, 6));
-        GLCall(glDrawArrays(GL_PATCHES, 0, 6));
+        GLCall(glPatchParameteri(GL_PATCH_VERTICES, 4));
+        GLCall(glDrawArrays(GL_PATCHES, 0, 4));
         //GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
         //GLCall(glBindVertexArray(geometryVao));
@@ -464,11 +464,11 @@ void CreateBufferTest()
          // positions          // texture coords 
         - 20.0f, 20.0f,  0.0f,  0.0f, 0.0f,
         -20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
-         20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
+         20.0f, -20.0, 0.0f,  1.0f, 1.0f,
+         20.0f, 20.0f,  0.0f,  1.0f, 0.0f
 
-        -20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
-         20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
-         20.0f, -20.0, 0.0f,  1.0f, 1.0f
+        //-20.0f, -20.0f, 0.0f,  0.0f, 1.0f,
+         //20.0f, 20.0f,  0.0f,  1.0f, 0.0f,
     };
     
     glGenBuffers(1, &VBO);
