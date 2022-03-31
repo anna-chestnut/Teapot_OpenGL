@@ -151,7 +151,7 @@ static unsigned int CompileShader(unsigned int type, const std::string& source);
 static unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader);
 static ShaderWithGeometryProgramSource ParseShaderWithGeometry(const std::string& filepath);
 static unsigned int CompileShaderWithGeometry(unsigned int type, const std::string& source);
-static unsigned int CreateShaderWithGeometry(const std::string& vertexShader, const std::string& fragmentShader, const std::string& geometryShader, const std::string& tessContShader, const std::string& tessEvalShader);
+static unsigned int CreateShaderWithGeometry(bool hasGeometry, const std::string& vertexShader, const std::string& fragmentShader, const std::string& geometryShader, const std::string& tessContShader, const std::string& tessEvalShader);
 void ReCompileShader();
 void myIdle();
 void myKeyboard(unsigned char key, int x, int y);
@@ -236,13 +236,13 @@ void myDisplay()
         glBindTexture(GL_TEXTURE_2D, displacementTexture);
 
 
-        //GLCall(GLuint location = glGetUniformLocation(geometryShader, "lightPos"));
-        //assert(location != -1);
-        //GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+        GLCall(GLuint location = glGetUniformLocation(geometryShader, "lightPos"));
+        assert(location != -1);
+        GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
 
-        //GLCall(location = glGetUniformLocation(geometryShader, "viewPos"));
-        //assert(location != -1);
-        //GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
+        GLCall(location = glGetUniformLocation(geometryShader, "viewPos"));
+        assert(location != -1);
+        GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
         //texture
         GLCall(location = glGetUniformLocation(geometryShader, "normalMap"));
         assert(location != -1);
@@ -491,7 +491,7 @@ static void LoadShaders() {
     assert(normalShader != -1);
 
     ShaderWithGeometryProgramSource sourceWithG = ParseShaderWithGeometry("res/shaders/Geometry.shader");
-    geometryShader = CreateShaderWithGeometry(sourceWithG.VertexSource, sourceWithG.FragmentSource, sourceWithG.GeometrySource, sourceWithG.TessControlSource, sourceWithG.TessEvaluationSource);
+    geometryShader = CreateShaderWithGeometry(false, sourceWithG.VertexSource, sourceWithG.FragmentSource, sourceWithG.GeometrySource, sourceWithG.TessControlSource, sourceWithG.TessEvaluationSource);
     assert(geometryShader != -1);
 
 
@@ -796,19 +796,22 @@ static unsigned int CompileShaderWithGeometry(unsigned int type, const std::stri
     return id;
 }
 
-static unsigned int CreateShaderWithGeometry(const std::string& vertexShader, const std::string& fragmentShader, const std::string& geometryShader, const std::string& tessContShader, const std::string& tessEvalShader)
+static unsigned int CreateShaderWithGeometry(bool hasGeometry, const std::string& vertexShader, const std::string& fragmentShader, const std::string& geometryShader, const std::string& tessContShader, const std::string& tessEvalShader)
 {
 
     unsigned int program = glCreateProgram();
     unsigned int vs = CompileShaderWithGeometry(GL_VERTEX_SHADER, vertexShader);
     unsigned int fs = CompileShaderWithGeometry(GL_FRAGMENT_SHADER, fragmentShader);
-    unsigned int gs = CompileShaderWithGeometry(GL_GEOMETRY_SHADER, geometryShader);
     unsigned int tsc = CompileShaderWithGeometry(GL_TESS_CONTROL_SHADER, tessContShader);
     unsigned int tse = CompileShaderWithGeometry(GL_TESS_EVALUATION_SHADER, tessEvalShader);
 
     glAttachShader(program, vs);
     glAttachShader(program, fs);
-    glAttachShader(program, gs);
+    if (hasGeometry) {
+        unsigned int gs = CompileShaderWithGeometry(GL_GEOMETRY_SHADER, geometryShader);
+        glAttachShader(program, gs);
+        glDeleteShader(gs);
+    }
     glAttachShader(program, tsc);
     glAttachShader(program, tse);
     glLinkProgram(program);
@@ -816,7 +819,7 @@ static unsigned int CreateShaderWithGeometry(const std::string& vertexShader, co
 
     glDeleteShader(vs);
     glDeleteShader(fs);
-    glDeleteShader(gs);
+        
     glDeleteShader(tsc);
     glDeleteShader(tse);
 

@@ -104,7 +104,8 @@ void main()
 layout(triangles) in;
 layout(line_strip, max_vertices = 3) out;
 
-in vec3 tePosition[3];
+//in vec3 tePosition[3];
+//out vec3 gPosition;
 
 in vec2 teTexCoord[3];
 out vec2 gTexCoord;
@@ -114,14 +115,17 @@ void main() {
 
     gl_Position = gl_in[0].gl_Position;
     gTexCoord = teTexCoord[0];
+    //gPosition = tePosition[0];
     EmitVertex();
 
     gl_Position = gl_in[1].gl_Position;
     gTexCoord = teTexCoord[1];
+    //gPosition = tePosition[1];
     EmitVertex();
 
     gl_Position = gl_in[2].gl_Position;
     gTexCoord = teTexCoord[2];
+    //gPosition = tePosition[2];
     EmitVertex();
 
     //gl_Position = gl_in[0].gl_Position;
@@ -139,17 +143,39 @@ out vec4 FragColor;
 
 //in float Height;
 in vec2 gTexCoord;
+in vec2 teTexCoord;
 
+in vec3 tePosition;
+
+uniform vec3 lightPos;
+uniform vec3 viewPos;
 uniform sampler2D normalMap;
 
 void main()
 {
+
+    vec3 col = vec3(1, 0, 0);
+
+    vec3 ambient = 0.1 * col;
+
     //FragColor = vec4(fColor, 1.0);
-    vec3 normal = texture(normalMap, gTexCoord).rgb;
+    vec3 normal = texture(normalMap, teTexCoord).rgb;
     // transform normal vector to range [-1,1]
     normal = normalize(normal * 2.0 - 1.0);  // this normal is in tangent space
 
-    FragColor = vec4(normal, 1.0);
+    // diffuse 
+    vec3 lightDir = normalize(lightPos - tePosition);
+    float diff = max(dot(normal, lightDir), 0.0);
+    vec3 diffuse = diff * col;
+
+    // specular
+    vec3 viewDir = normalize(viewPos - tePosition);
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float specular = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+
+    vec3 result = (ambient + diffuse + specular);
+
+    FragColor = vec4(result, 1.0);
 
     /*float h = (Height) / 10.0f;
     FragColor = vec4(h, 0.0, 0.0, 1.0);*/
