@@ -88,9 +88,8 @@ float rightLastY = SCR_HEIGHT / 2.0;
 float zoom = 0.0f;
 
 unsigned int shader;
-unsigned int planeShader;
-unsigned int quardShader;
 unsigned int normalShader;
+unsigned int tessShader;
 unsigned int geometryShader;
 unsigned int numberOfV = 0;
 //unsigned int numberOfVN = 0;
@@ -174,40 +173,79 @@ void myDisplay()
     GLCall(glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT));
     glClearColor(0, 0, 0, 0);
 
-    GLCall(glUseProgram(normalShader));
-    GLCall(glBindVertexArray(planeVao));
+    //GLCall(glUseProgram(normalShader));
+    //GLCall(glBindVertexArray(planeVao));
     /*MVP into vertex shader*/
     glm::mat4 view = camera.GetViewMatrix();//glm::lookAt(cameraPos, glm::vec3(0, 0, 0), cameraUp); //cameraPos + cameraFront glm::vec3(0, 0, 0)
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f); // glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 1000.0f);
     glm::mat4 model = rotation * glm::mat4(1.0f); //translation*rotation*scale
-    //MVP
-    GLCall(GLuint modelId = glGetUniformLocation(normalShader, "model"));
+    ////MVP
+    //GLCall(GLuint modelId = glGetUniformLocation(normalShader, "model"));
+    //assert(modelId != -1);
+    //GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
+
+    //GLCall(GLuint viewId = glGetUniformLocation(normalShader, "view"));
+    //assert(viewId != -1);
+    //GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
+
+    //GLCall(GLuint proId = glGetUniformLocation(normalShader, "projection"));
+    //assert(proId != -1);
+    //GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
+
+    //GLCall(GLuint location = glGetUniformLocation(normalShader, "lightPos"));
+    //assert(location != -1);
+    //GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+
+    //GLCall(location = glGetUniformLocation(normalShader, "viewPos"));
+    //assert(location != -1);
+    //GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
+    ////texture
+    //GLCall(location = glGetUniformLocation(normalShader, "normalMap"));
+    //assert(location != -1);
+    //GLCall(glUniform1i(location, 0));
+
+    //// bind textures on corresponding texture units
+    //glActiveTexture(GL_TEXTURE0);
+    //glBindTexture(GL_TEXTURE_2D, normalTexture);
+    GLCall(glUseProgram(tessShader));
+
+    GLCall(GLuint modelId = glGetUniformLocation(tessShader, "model"));
     assert(modelId != -1);
     GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
 
-    GLCall(GLuint viewId = glGetUniformLocation(normalShader, "view"));
+    GLCall(GLuint viewId = glGetUniformLocation(tessShader, "view"));
     assert(viewId != -1);
     GLCall(glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]));
 
-    GLCall(GLuint proId = glGetUniformLocation(normalShader, "projection"));
+    GLCall(GLuint proId = glGetUniformLocation(tessShader, "projection"));
     assert(proId != -1);
     GLCall(glUniformMatrix4fv(proId, 1, GL_FALSE, &projection[0][0]));
 
-    GLCall(GLuint location = glGetUniformLocation(normalShader, "lightPos"));
+    GLCall(GLuint location = glGetUniformLocation(tessShader, "heightMap"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 1));
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, displacementTexture);
+
+
+    GLCall(location = glGetUniformLocation(tessShader, "lightPos"));
     assert(location != -1);
     GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
 
-    GLCall(location = glGetUniformLocation(normalShader, "viewPos"));
+    GLCall(location = glGetUniformLocation(tessShader, "viewPos"));
     assert(location != -1);
     GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
     //texture
-    GLCall(location = glGetUniformLocation(normalShader, "normalMap"));
+    GLCall(location = glGetUniformLocation(tessShader, "normalMap"));
     assert(location != -1);
     GLCall(glUniform1i(location, 0));
-
-    // bind textures on corresponding texture units
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, normalTexture);
+
+    GLCall(glBindVertexArray(VAO));
+    GLCall(glPatchParameteri(GL_PATCH_VERTICES, 4));
+    GLCall(glDrawArrays(GL_PATCHES, 0, 4));
+
 
     //GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
@@ -491,10 +529,13 @@ static void LoadShaders() {
     assert(normalShader != -1);
 
     ShaderWithGeometryProgramSource sourceWithG = ParseShaderWithGeometry("res/shaders/Geometry.shader");
-    geometryShader = CreateShaderWithGeometry(false, sourceWithG.VertexSource, sourceWithG.FragmentSource, sourceWithG.GeometrySource, sourceWithG.TessControlSource, sourceWithG.TessEvaluationSource);
+    geometryShader = CreateShaderWithGeometry(true, sourceWithG.VertexSource, sourceWithG.FragmentSource, sourceWithG.GeometrySource, sourceWithG.TessControlSource, sourceWithG.TessEvaluationSource);
     assert(geometryShader != -1);
 
-
+    sourceWithG = ParseShaderWithGeometry("res/shaders/Tessellation.shader");
+    tessShader = CreateShaderWithGeometry(false, sourceWithG.VertexSource, sourceWithG.FragmentSource, sourceWithG.GeometrySource, sourceWithG.TessControlSource, sourceWithG.TessEvaluationSource);
+    assert(tessShader != -1);
+    
 }
 
 void CreateBufferTest()

@@ -10,7 +10,7 @@ void main()
 {
     //vs_out.color = aColor;
     //gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);
-    gl_Position = vec4(aPos.x, aPos.y, 0.2, 1.0);
+    gl_Position = vec4(aPos.x, aPos.y, 0.1, 1.0);
     TexCoord = aTex;
 }
 
@@ -154,7 +154,7 @@ uniform sampler2D normalMap;
 void main()
 {
 
-    vec3 col = vec3(0, 1, 0);
+    vec3 col = vec3(1, 0, 0);
 
     vec3 ambient = 0.1 * col;
 
