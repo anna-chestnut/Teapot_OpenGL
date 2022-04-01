@@ -1,5 +1,5 @@
 #shader vertex
-#version 410 core
+#version 330 core
 
 layout(location = 0) in vec3 pos;
 
@@ -13,7 +13,7 @@ void main()
 };
 
 #shader fragment
-#version 410 core
+#version 330 core
 
 layout(location = 0) out float fragmentdepth;
 
