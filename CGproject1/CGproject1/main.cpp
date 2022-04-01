@@ -67,7 +67,7 @@ const unsigned int SCR_HEIGHT = 600;
 
 // camera
 Camera cameraPlane(glm::vec3(0.0f, 0.0f, 60.0f));
-Camera camera(glm::vec3(0.0f, 15.0f, 60.0f));//60
+Camera camera(glm::vec3(0.0f, 1.0f, 10.0f));//camera(glm::vec3(0.0f, 15.0f, 60.0f));//60
 Camera pointlight(glm::vec3(40.0f, 20.0f, 20.0f));
 //float lastX = SCR_WIDTH / 2.0f;
 //float lastY = SCR_HEIGHT / 2.0f;
@@ -85,6 +85,7 @@ const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 
 
 unsigned int teapotShader;
+unsigned int shadowMappingShader;
 unsigned int planeShader;
 unsigned int shadowShader;
 unsigned int debugPlaneShader;
@@ -208,16 +209,64 @@ void myDisplay3() {
     glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glClear(GL_DEPTH_BUFFER_BIT);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture1);
     renderScene2(shadowShader);
-    /*glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, woodTexture);
-    renderScene(simpleDepthShader);*/
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // reset viewport
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // 2. render scene as normal using the generated depth/shadow map  
+    // --------------------------------------------------------------
+    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    GLCall(glUseProgram(shadowMappingShader)); //shadowMappingShader.use();
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 view = camera.GetViewMatrix();
+    // shader.setMat4("projection", projection);
+    GLCall(modelId = glGetUniformLocation(shadowMappingShader, "projection"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &projection[0][0]));
+    
+    //shader.setMat4("view", view);
+    GLCall(modelId = glGetUniformLocation(shadowMappingShader, "view"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &view[0][0]));
+
+    // set light uniforms
+    
+    //shader.setVec3("viewPos", camera.Position);
+    GLCall(GLuint location = glGetUniformLocation(shadowMappingShader, "viewPos"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, camera.Position.x, camera.Position.y, camera.Position.z));
+
+    //shader.setVec3("lightPos", lightPos);
+    GLCall(location = glGetUniformLocation(shadowMappingShader, "lightPos"));
+    assert(location != -1);
+    GLCall(glUniform3f(location, lightPos.x, lightPos.y, lightPos.z));
+
+    //shader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+    GLCall(modelId = glGetUniformLocation(shadowMappingShader, "lightSpaceMatrix"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &lightSpaceMatrix[0][0]));
+
+    //texture
+    GLCall(location = glGetUniformLocation(shadowMappingShader, "diffuseTexture"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 0));
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+    
+    GLCall(location = glGetUniformLocation(shadowMappingShader, "shadowMap"));
+    assert(location != -1);
+    GLCall(glUniform1i(location, 1));
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+
+    renderScene2(shadowMappingShader);
 
     // render Depth map to quad for visual debugging
     // ---------------------------------------------
@@ -230,7 +279,7 @@ void myDisplay3() {
     GLCall(glUniform1f(location, far_plane));*/
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, depthMap);
-    renderQuad();
+    //renderQuad();
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
     // -------------------------------------------------------------------------------
@@ -809,11 +858,11 @@ static void CreateTexture() {
     // generate diffuse texture
     GLCall(glGenTextures(1, &texture1));
     GLCall(glBindTexture(GL_TEXTURE_2D, texture1));
-    std::string file = "res/texture";
+    /*std::string file = "res/texture";
     std::string diffusePic = tm.M(0).map_Kd.data;
     std::string str = "res/texture/" + diffusePic;
-    const char* fileLocation = str.c_str();
-    image = decodeTwoSteps(fileLocation, image);//"res/texture/brick.png"
+    const char* fileLocation = str.c_str();*/
+    image = decodeTwoSteps("res/texture/brick.png", image);//decodeTwoSteps(fileLocation, image);
     assert(&image);
     GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]));
     GLCall(glGenerateMipmap(GL_TEXTURE_2D));
@@ -963,6 +1012,10 @@ static void LoadShaders() {
     source = ParseShader("res/shaders/debug_quad_depth.shader");
     debugDepthQuad = CreateShader(source.VertexSource, source.FragmentSource);
     assert(debugDepthQuad != -1);
+
+    source = ParseShader("res/shaders/shadow_mapping.shader");
+    shadowMappingShader = CreateShader(source.VertexSource, source.FragmentSource);
+    assert(shadowMappingShader != -1);
 }
 
 
@@ -993,9 +1046,9 @@ int main(int argc, char** argv)
     }
 
 
-    CreateVertexBuffer();
+    //CreateVertexBuffer();
 
-    CreateVertexArrayObject();
+    //CreateVertexArrayObject();
 
     //Framebuffer();
     depthMapSetting();
