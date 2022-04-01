@@ -43,9 +43,9 @@ void main()
 	color = vec4(col, 1.0);*/
 
 	vec3 col = texture(teapotTexture, TexCoords).rgb;
-	if (col == clearColor) {
+	/*if (col == clearColor) {
 		col = planeColor;
-	}
+	}*/
 	color = vec4(col, 1.0);
 
 	//float depthValue = texture(shadowMap, TexCoords).r;

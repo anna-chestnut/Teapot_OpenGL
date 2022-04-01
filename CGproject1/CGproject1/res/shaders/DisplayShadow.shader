@@ -13,7 +13,7 @@ out vec4 lightView_Position;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-uniform mat4 matrixShadow;
+uniform mat4 lightSpaceMatrix;
 //vec3 aNormal = vec3(0, 1, 0);
 
 void main()
@@ -21,7 +21,7 @@ void main()
 	TexCoords = aTexCoord;
 	Normal = mat3(transpose(inverse(model))) * aNormal;
 	Position = vec3(model * vec4(pos, 1.0));// Position is in world-space
-	lightView_Position = matrixShadow * vec4(pos, 1);
+	lightView_Position = lightSpaceMatrix * vec4(pos, 1);
 	gl_Position = projection * view * model * vec4(pos, 1);
 };
 

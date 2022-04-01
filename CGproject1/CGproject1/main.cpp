@@ -67,7 +67,7 @@ const unsigned int SCR_HEIGHT = 600;
 
 // camera
 Camera cameraPlane(glm::vec3(0.0f, 0.0f, 60.0f));
-Camera camera(glm::vec3(0.0f, 1.0f, 10.0f));//camera(glm::vec3(0.0f, 15.0f, 60.0f));//60
+Camera camera(glm::vec3(0.0f, 15.0f, 60.0f));//camera(glm::vec3(0.0f, 15.0f, 60.0f));//60
 Camera pointlight(glm::vec3(40.0f, 20.0f, 20.0f));
 //float lastX = SCR_WIDTH / 2.0f;
 //float lastY = SCR_HEIGHT / 2.0f;
@@ -98,6 +98,7 @@ GLuint normalBindingIndex = 1;
 GLuint textureBindingIndex = 2;
 
 // teapot
+std::vector<float> verticesFloat;
 std::vector<glm::vec3> vertices;
 std::vector<glm::vec3> verticesNormal;
 std::vector<glm::vec3> verticesTexture;
@@ -141,13 +142,15 @@ void mySpecialKeyboard(int key, int x, int y);
 void drag2(int x, int y);
 void renderScene(const unsigned int i_shader);
 void renderScene2(const unsigned int i_shader);
+void renderTeapot();
 
 unsigned int depthMapFBO;
 //unsigned int depthMap;
 unsigned int simpleDepthShader;
 unsigned int debugDepthQuad;
 
-glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
+glm::vec3 lightPos(-2.0f, 4.0f, -1.0f); //lightPos(10.0f, 10.0f, 1.0f);
+//lightPos(-2.0f, 4.0f, -1.0f);
 
 // renderQuad() renders a 1x1 XY quad in NDC
 // -----------------------------------------
@@ -218,6 +221,8 @@ void myDisplay3() {
     // reset viewport
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    
 
     // 2. render scene as normal using the generated depth/shadow map  
     // --------------------------------------------------------------
@@ -299,6 +304,7 @@ void depthMapSetting() {
         -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
          25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 25.0f
     };
+
     // plane VAO
     unsigned int planeVBO;
     glGenVertexArrays(1, &planeVAO);
@@ -322,8 +328,8 @@ void depthMapSetting() {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);//GL_REPEAT
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     // attach depth texture as FBO's depth buffer
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
@@ -658,7 +664,7 @@ void renderScene2(const unsigned int i_shader)
     glBindVertexArray(planeVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     // cubes
-    model = glm::mat4(1.0f);
+    /*model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0));
     model = glm::scale(model, glm::vec3(0.5f));
     GLCall(modelId = glGetUniformLocation(i_shader, "model"));
@@ -679,7 +685,15 @@ void renderScene2(const unsigned int i_shader)
     GLCall(modelId = glGetUniformLocation(i_shader, "model"));
     assert(modelId != -1);
     GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &model[0][0]));
-    renderCube();
+    renderCube();*/
+
+    glm::mat4 teapot_model = rotation * glm::mat4(1.0f);
+    teapot_model = glm::rotate(teapot_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    GLCall(modelId = glGetUniformLocation(i_shader, "model"));
+    assert(modelId != -1);
+    GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &teapot_model[0][0]));
+    glBindVertexArray(vao);
+    glDrawArrays(GL_TRIANGLES, 0, numberOfV);
 }
 
 void renderScene(const unsigned int i_shader)
@@ -705,6 +719,101 @@ void renderScene(const unsigned int i_shader)
     GLCall(glUniformMatrix4fv(modelId, 1, GL_FALSE, &plane_model[0][0]));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
 
+}
+
+void renderTeapot() 
+{
+    // initialize (if necessary)
+    if (cubeVAO == 0)
+    {
+        
+        // teapot vertex array object
+        // --------------------------
+        std::ostream* outString = nullptr;
+        std::string str = "res/texture/" + objName;
+        const char* fileLocation = str.c_str();
+        std::cout << fileLocation << std::endl;
+        bool readSuccess = tm.LoadFromFileObj("res/texture/teapot.obj", true, outString);
+        assert(readSuccess);
+
+
+        for (unsigned int i = 0; i < tm.NF(); i++)
+        {
+            //vetices
+            cy::TriMesh::TriFace face = tm.F(i);
+            vertices.push_back(glm::vec3(tm.V(face.v[0]).x, tm.V(face.v[0]).y, tm.V(face.v[0]).z));
+            vertices.push_back(glm::vec3(tm.V(face.v[1]).x, tm.V(face.v[1]).y, tm.V(face.v[1]).z));
+            vertices.push_back(glm::vec3(tm.V(face.v[2]).x, tm.V(face.v[2]).y, tm.V(face.v[2]).z));
+
+            verticesFloat.push_back(tm.V(face.v[0]).x);
+            verticesFloat.push_back(tm.V(face.v[0]).y);
+            verticesFloat.push_back(tm.V(face.v[0]).z);
+
+            face = tm.FN(i);
+            verticesFloat.push_back(tm.VN(face.v[0]).x);
+            verticesFloat.push_back(tm.VN(face.v[0]).y);
+            verticesFloat.push_back(tm.VN(face.v[0]).z);
+
+            face = tm.FT(i);
+            verticesFloat.push_back(tm.VT(face.v[0]).x);
+            verticesFloat.push_back(tm.VT(face.v[0]).y);
+            verticesFloat.push_back(tm.VT(face.v[0]).z);
+
+            // 1
+            face = tm.F(i);
+            verticesFloat.push_back(tm.V(face.v[1]).x);
+            verticesFloat.push_back(tm.V(face.v[1]).y);
+            verticesFloat.push_back(tm.V(face.v[1]).z);
+
+            face = tm.FN(i);
+            verticesFloat.push_back(tm.VN(face.v[1]).x);
+            verticesFloat.push_back(tm.VN(face.v[1]).y);
+            verticesFloat.push_back(tm.VN(face.v[1]).z);
+
+            face = tm.FT(i);
+            verticesFloat.push_back(tm.VT(face.v[1]).x);
+            verticesFloat.push_back(tm.VT(face.v[1]).y);
+            verticesFloat.push_back(tm.VT(face.v[1]).z);
+
+            // 2
+            face = tm.F(i);
+            verticesFloat.push_back(tm.V(face.v[2]).x);
+            verticesFloat.push_back(tm.V(face.v[2]).y);
+            verticesFloat.push_back(tm.V(face.v[2]).z);
+
+            face = tm.FN(i);
+            verticesFloat.push_back(tm.VN(face.v[2]).x);
+            verticesFloat.push_back(tm.VN(face.v[2]).y);
+            verticesFloat.push_back(tm.VN(face.v[2]).z);
+
+            face = tm.FT(i);
+            verticesFloat.push_back(tm.VT(face.v[2]).x);
+            verticesFloat.push_back(tm.VT(face.v[2]).y);
+            verticesFloat.push_back(tm.VT(face.v[2]).z);
+        }
+
+        numberOfV = vertices.size();
+
+        glGenVertexArrays(1, &cubeVAO);
+        glGenBuffers(1, &cubeVBO);
+        // fill buffer
+        glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(verticesFloat), &verticesFloat, GL_STATIC_DRAW);
+        // link vertex attributes
+        glBindVertexArray(cubeVAO);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+    // render Cube
+    glBindVertexArray(cubeVAO);
+    glDrawArrays(GL_TRIANGLES, 0, numberOfV);
+    glBindVertexArray(0);
 }
 
 static void CreateVertexBuffer()
@@ -755,36 +864,36 @@ static void CreateVertexBuffer()
     GLCall(glCreateBuffers(1, &texturebuffer));
     GLCall(glNamedBufferStorage(texturebuffer, verticesTexture.size() * sizeof(verticesTexture[0]), &verticesTexture[0], 0));
 
-    // plane vertices
-    // -----------------------
-    float allplaneVertices[] = {
-        // positions            // normals         // texcoords
-         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  1.0f,  0.0f,
-        -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
-        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 1.0f,
+    //// plane vertices
+    //// -----------------------
+    //float allplaneVertices[] = {
+    //    // positions            // normals         // texcoords
+    //     25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  1.0f,  0.0f,
+    //    -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
+    //    -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 1.0f,
 
-         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  1.0f,  0.0f,
-        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 1.0f,
-         25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  1.0f, 1.0f
-    };
+    //     25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  1.0f,  0.0f,
+    //    -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 1.0f,
+    //     25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  1.0f, 1.0f
+    //};
 
-    for (unsigned int i = 0; i < 48; i = i+8)
-    {
-        planeVertices.push_back(glm::vec3(allplaneVertices[i], allplaneVertices[i+1], allplaneVertices[i+2]));
-        planeVerticesNormal.push_back(glm::vec3(allplaneVertices[i + 3], allplaneVertices[i + 4], allplaneVertices[i + 5]));
-        planVerticesTexture.push_back(glm::vec2(allplaneVertices[i + 6], allplaneVertices[i + 7]));
-    }
+    //for (unsigned int i = 0; i < 48; i = i+8)
+    //{
+    //    planeVertices.push_back(glm::vec3(allplaneVertices[i], allplaneVertices[i+1], allplaneVertices[i+2]));
+    //    planeVerticesNormal.push_back(glm::vec3(allplaneVertices[i + 3], allplaneVertices[i + 4], allplaneVertices[i + 5]));
+    //    planVerticesTexture.push_back(glm::vec2(allplaneVertices[i + 6], allplaneVertices[i + 7]));
+    //}
 
-    GLCall(glCreateBuffers(1, &planVertexbuffer));
-    GLCall(glNamedBufferStorage(planVertexbuffer, planeVertices.size() * sizeof(planeVertices[0]), &planeVertices[0], 0));
+    //GLCall(glCreateBuffers(1, &planVertexbuffer));
+    //GLCall(glNamedBufferStorage(planVertexbuffer, planeVertices.size() * sizeof(planeVertices[0]), &planeVertices[0], 0));
 
-    GLCall(glCreateBuffers(1, &planNormalbuffer));
-    GLCall(glNamedBufferStorage(planNormalbuffer, planeVerticesNormal.size() * sizeof(planeVerticesNormal[0]), &planeVerticesNormal[0], 0));
+    //GLCall(glCreateBuffers(1, &planNormalbuffer));
+    //GLCall(glNamedBufferStorage(planNormalbuffer, planeVerticesNormal.size() * sizeof(planeVerticesNormal[0]), &planeVerticesNormal[0], 0));
 
-    GLCall(glCreateBuffers(1, &planTexturebuffer));
-    GLCall(glNamedBufferStorage(planTexturebuffer, planVerticesTexture.size() * sizeof(planVerticesTexture[0]), &planVerticesTexture[0], 0));
+    //GLCall(glCreateBuffers(1, &planTexturebuffer));
+    //GLCall(glNamedBufferStorage(planTexturebuffer, planVerticesTexture.size() * sizeof(planVerticesTexture[0]), &planVerticesTexture[0], 0));
 
-    
+    //
 
 }
 
@@ -821,32 +930,32 @@ static void CreateVertexArrayObject()
     GLCall(glVertexArrayBindingDivisor(vao, textureBindingIndex, 0));
     GLCall(glEnableVertexArrayAttrib(vao, aTexCoord));
 
-    // create plane vertex array object
-    // --------------------------------
-    GLCall(glCreateVertexArrays(1, &planeVao));
+    //// create plane vertex array object
+    //// --------------------------------
+    //GLCall(glCreateVertexArrays(1, &planeVao));
 
-    //vertex buffer
-    GLCall(glVertexArrayVertexBuffer(planeVao, vertexBindingIndex, planVertexbuffer, 0, sizeof(glm::vec3))); 
-    GLCall(glVertexArrayAttribFormat(planeVao, pos, 3, GL_FLOAT, GL_FALSE, 0));                          
-    GLCall(glVertexArrayAttribBinding(planeVao, pos, vertexBindingIndex));
-    GLCall(glVertexArrayBindingDivisor(planeVao, vertexBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(planeVao, pos));
+    ////vertex buffer
+    //GLCall(glVertexArrayVertexBuffer(planeVao, vertexBindingIndex, planVertexbuffer, 0, sizeof(glm::vec3))); 
+    //GLCall(glVertexArrayAttribFormat(planeVao, pos, 3, GL_FLOAT, GL_FALSE, 0));                          
+    //GLCall(glVertexArrayAttribBinding(planeVao, pos, vertexBindingIndex));
+    //GLCall(glVertexArrayBindingDivisor(planeVao, vertexBindingIndex, 0));
+    //GLCall(glEnableVertexArrayAttrib(planeVao, pos));
 
-    //normal buffer
-    GLCall(glVertexArrayVertexBuffer(planeVao, normalBindingIndex, planNormalbuffer, 0, sizeof(glm::vec3)));
-    GLCall(glVertexArrayAttribFormat(planeVao, aNormal, 3, GL_FLOAT, GL_FALSE, 0));
-    GLCall(glVertexArrayAttribBinding(planeVao, aNormal, normalBindingIndex));
-    GLCall(glVertexArrayBindingDivisor(planeVao, normalBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(planeVao, aNormal));
+    ////normal buffer
+    //GLCall(glVertexArrayVertexBuffer(planeVao, normalBindingIndex, planNormalbuffer, 0, sizeof(glm::vec3)));
+    //GLCall(glVertexArrayAttribFormat(planeVao, aNormal, 3, GL_FLOAT, GL_FALSE, 0));
+    //GLCall(glVertexArrayAttribBinding(planeVao, aNormal, normalBindingIndex));
+    //GLCall(glVertexArrayBindingDivisor(planeVao, normalBindingIndex, 0));
+    //GLCall(glEnableVertexArrayAttrib(planeVao, aNormal));
 
-    //texture buffer
-    GLCall(glVertexArrayVertexBuffer(planeVao, textureBindingIndex, planTexturebuffer, 0, sizeof(glm::vec2)));
-    GLCall(glVertexArrayAttribFormat(planeVao, aTexCoord, 2, GL_FLOAT, GL_FALSE, 0));                   
-    GLCall(glVertexArrayAttribBinding(planeVao, aTexCoord, textureBindingIndex));
-    GLCall(glVertexArrayBindingDivisor(planeVao, textureBindingIndex, 0));
-    GLCall(glEnableVertexArrayAttrib(planeVao, aTexCoord));
+    ////texture buffer
+    //GLCall(glVertexArrayVertexBuffer(planeVao, textureBindingIndex, planTexturebuffer, 0, sizeof(glm::vec2)));
+    //GLCall(glVertexArrayAttribFormat(planeVao, aTexCoord, 2, GL_FLOAT, GL_FALSE, 0));                   
+    //GLCall(glVertexArrayAttribBinding(planeVao, aTexCoord, textureBindingIndex));
+    //GLCall(glVertexArrayBindingDivisor(planeVao, textureBindingIndex, 0));
+    //GLCall(glEnableVertexArrayAttrib(planeVao, aTexCoord));
 
-    
+    //
 }
 
 
@@ -1013,7 +1122,7 @@ static void LoadShaders() {
     debugDepthQuad = CreateShader(source.VertexSource, source.FragmentSource);
     assert(debugDepthQuad != -1);
 
-    source = ParseShader("res/shaders/shadow_mapping.shader");
+    source = ParseShader("res/shaders/shadow_mapping.shader");//shadow_mapping
     shadowMappingShader = CreateShader(source.VertexSource, source.FragmentSource);
     assert(shadowMappingShader != -1);
 }
@@ -1046,9 +1155,9 @@ int main(int argc, char** argv)
     }
 
 
-    //CreateVertexBuffer();
+    CreateVertexBuffer();
 
-    //CreateVertexArrayObject();
+    CreateVertexArrayObject();
 
     //Framebuffer();
     depthMapSetting();
