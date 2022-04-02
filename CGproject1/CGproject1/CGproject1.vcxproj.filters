@@ -1335,6 +1335,8 @@
     <None Include="res\shaders\Screen.shader" />
     <None Include="res\shaders\Shadow.shader" />
     <None Include="res\shaders\Plane.shader" />
+    <None Include="res\shaders\shadow_mapping.shader" />
+    <None Include="res\shaders\debug_quad_depth.shader" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\texture\cubemap_negx.png">

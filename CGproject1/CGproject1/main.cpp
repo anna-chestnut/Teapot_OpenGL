@@ -108,8 +108,8 @@ std::vector<glm::vec3> planeVerticesNormal;
 std::vector<glm::vec2> planVerticesTexture;
 
 // lighting
-//glm::vec3 lightPos(-60.0f, 60.0f, 10.0f);//1.2f, 1.0f, 2.0f -60.0f, 45.0f, 20.0f
-glm::vec3 lightPosOrigin(-60.0f, 60.0f, 10.0f);
+glm::vec3 lightPos(-10.0f, 15.0f, -10.0f);//1.2f, 1.0f, 2.0f -60.0f, 45.0f, 20.0f
+glm::vec3 lightPosOrigin(-10.0f, 15.0f, -10.0f);
 float degree = 0.0f;
 float horDegree = 0.0f;
 
@@ -149,7 +149,7 @@ unsigned int depthMapFBO;
 unsigned int simpleDepthShader;
 unsigned int debugDepthQuad;
 
-glm::vec3 lightPos(-10.0f, 15.0f, -10.0f); //lightPos(10.0f, 10.0f, 1.0f);
+//glm::vec3 lightPos(-10.0f, 15.0f, -10.0f); //lightPos(10.0f, 10.0f, 1.0f);
 //lightPos(-2.0f, 4.0f, -1.0f);
 
 // renderQuad() renders a 1x1 XY quad in NDC
@@ -284,7 +284,7 @@ void myDisplay3() {
     GLCall(glUniform1f(location, far_plane));*/
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, depthMap);
-    //renderQuad();
+    renderQuad();
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
     // -------------------------------------------------------------------------------
@@ -1445,6 +1445,8 @@ void drag2(int x, int y)
             horDegree += yoffset;
             glm::vec3 horRotate(1, sin(horDegree), cos(horDegree));
             lightPos = horRotate * lightPosOrigin;
+
+            std::cout << "light position: (" << lightPos.x << ", " << lightPos.y << ", " << lightPos.z << ")" << std::endl;
         }
         else {
 
