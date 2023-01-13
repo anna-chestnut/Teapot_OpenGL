@@ -1,4 +1,4 @@
-# Teapot_OpenGL
+# Teapot OpenGL
 
 Use OpenGl to implement texture, shading, and environment mapping, etc.
 
